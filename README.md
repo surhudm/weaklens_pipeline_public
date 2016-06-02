@@ -8,7 +8,7 @@ lens catalogs, using a set of shape and photometric redshift catalogs from  HSC.
 end as an input to weaklens.py, we need
 
     (a) For lens catalog:
-        (i) ra, dec, z
+        (i) ra, dec, z, wt
 
     (b) For source catalog:
         (i) ra, dec, e1, e2, zmean, zmode, zmedian, zmc, z68up, z68down, z95up, z95down, and possibly p(z)

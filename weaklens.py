@@ -7,6 +7,16 @@ import argparse
 from scipy.interpolate import interp1d
 import yaml
 from select import lens_select, source_select
+import datetime
+import time
+import frogress
+
+sys.path.append("/home/surhud/aum/install/lib/python2.7/site-packages/")
+import cosmology as cc
+
+# Some constants
+gee = 4.2994e-9
+cee = 299792.458
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("--config", help="Configuration file")
@@ -35,9 +45,6 @@ dsigcross_sum = np.zeros(rbin)
 wls_sum = np.zeros(rbin)
 wls_ms_sum = np.zeros(rbin)
 
-sys.path.append("/home/surhud/aum/install/lib/python2.7/site-packages/")
-import cosmology as cc
-
 # Only important parameter here is Omega0 = 0.27
 cosmo = cc.cosmology(0.27,0.0,-1.0,0.0,0.0476,0.7,2.726,0.8,0.96,np.log10(8.0),1.0)
 
@@ -64,11 +71,17 @@ for i in range(zred.size):
     dCofzl[i] = cosmo.Dcofz(zred[i])
 
 # Ready to pounce on the source data, a million galaxies at a time
-import datetime
-import time
 itern=0
 done = False
 sourceargs = source_parseargs(config["source"])
+
+if sourceargs["fullpofz"]:
+    pofz_xz = sourceargs["pofz_zmin"] + sourceargs["pofz_zdiff"]*np.arange(sourceargs["pofz_zbins"])
+    pofz_dCofzs = zphot_arr * 0.0
+    for i in range(zphot_arr.size):
+        pofz_dCofzs[i] = cosmo.Dcofz(pofz_xz[i])
+        pofz_sigc_inv_fac[i]=1e12*4*M_PI*gee/(cee*cee)*(1+pofz_xz[kk])/(pofz_dCofzs[i])
+
 while (done):
     ragal, decgal, zphotgal, e1gal, e2gal, mgal, wgal, sourceargs, status = getdata(sourceargs, itern, chunksize=1000000)
     if status!=0:
@@ -82,11 +95,10 @@ while (done):
         dCofzs[i] = cosmo.Dcofz(zphotgal[i])
 
 
-    gee = 4.2994e-9
-    cee = 299792.458
     # Sigc_inv = 4piG/c^2 dL dLS/dS (1+zl)**2
     # First factor = 4piG/c^2 / dS
-    sigc_inv_fac=1e12*4*np.pi*gee/(cee*cee)*(1+zphotgal)/dCofzs
+    if not sourceargs["fullpofz"]:
+        sigc_inv_fac=1e12*4*np.pi*gee/(cee*cee)*(1+zphotgal)/dCofzs
 
     c_sra=np.cos(ragal)
     s_sra=np.sin(ragal)
@@ -100,7 +112,6 @@ while (done):
 
     tree = cKDTree(zip(xxgal, yygal, zzgal))
     # For every galaxy cluster, query the sources around it
-    import frogress
     for i in frogress.bar(range(ra.size)):
 
         ind = tree.query_ball_point([xx[i], yy[i], zz[i]], rmax/(dCofzl[i]))
@@ -141,7 +152,18 @@ while (done):
         # Sigc_inv = 4piG/c^2 dL dLS/dS (1+zl)**2
         # First factor = 4piG/c^2 / dS
         # Second factor = dL dLS (1+zl)**2
-        sigc_inv = sigc_inv_fac[ind][idx]*dCofzl[i]*(dCofzs[ind][idx]-dCofzl[i])/(1.+zphotgal[ind][idx])*(1+zred[i])
+        if sourceargs["fullpofz"]:
+            sigc_inv_den = np.zeros(np.sum(idx))
+            sigc_inv_num = np.zeros(np.sum(idx))
+            for k in range(sigc_inv_den.size):
+                sigc_inv_den[k] = np.sum(pofz[ind][idx][k])
+                #fac=pz_fac[k]*chi[xx]*(pz_chiz[k]-chi[xx])/(1+pz_xz[k])*(1+z[xx])
+                #av_sigc_inv_num+=pz[k]*fac
+                pz_idx = (pofz_dCofzs-dCofzl[i] > 0)
+                sigc_inv_num[k] = np.sum(pofz[ind][idx][k][pz_idx]*pofz_sigc_inv_fac[pz_idx]*dCofzl[i]*(pofz_dCofzs[pz_idx]-dCofzl[i])/(1.+pofz_xz[pz_idx])*(1.+z[i]))
+                sigc_inv[k] = sigc_inv_num/sigc_inv_den
+        else:
+            sigc_inv = sigc_inv_fac[ind][idx]*dCofzl[i]*(dCofzs[ind][idx]-dCofzl[i])/(1.+zphotgal[ind][idx])*(1+zred[i])
 
         # Now compute the weights
         wls = wgal[ind][idx]*wt[i]*pow(sigc_inv,2)
