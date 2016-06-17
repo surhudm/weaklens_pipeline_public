@@ -80,7 +80,7 @@ if sourceargs["fullpofz"]:
     pofz_dCofzs = zphot_arr * 0.0
     for i in range(zphot_arr.size):
         pofz_dCofzs[i] = cosmo.Dcofz(pofz_xz[i])
-        pofz_sigc_inv_fac[i]=1e12*4*M_PI*gee/(cee*cee)*(1+pofz_xz[kk])/(pofz_dCofzs[i])
+        pofz_sigc_inv_fac[i]=1.e12*4*M_PI*gee/(cee*cee)*(1+pofz_xz[kk])/(pofz_dCofzs[i])
 
 while (done):
     ragal, decgal, zphotgal, e1gal, e2gal, mgal, wgal, sourceargs, status = getdata(sourceargs, itern, chunksize=1000000)
