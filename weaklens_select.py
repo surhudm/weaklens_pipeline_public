@@ -13,7 +13,8 @@ def lens_select(lensargs):
         return ra[idx], dec[idx], zred[idx], wt[idx]
 
 def source_select(sourceargs, chunksize):
-    if sourceargs['type'] == "rcslens":
+
+    if sourceargs['type'] == "rcslens" and sourceargs['filetype'] == "fits":
         itern = sourceargs['iter']
         if itern == 0:
             sourceargs['fits'] = fitsio.FITS('DataStore/rcslens_data.fits')
@@ -28,23 +29,28 @@ def source_select(sourceargs, chunksize):
         if status:
             return datagal, sourceargs, Ngal, status, pofz
 
-        datagal = sourceargs['fits'][1]['ra','dec','e1','e2','weight','m','c1_dp','c2_dp','c1_nb','c2_nb','z_b'][itern*chunksize:(itern+1)*chunksize]
+        wheremask = fits[1].where("MAG_extcorr_r < %.5f && #row>%d && #row<=%d" % (sourceargs['maglim'], itern*chunksize, (itern+1)*chunksize))
+        datagal = sourceargs['fits'][1]['ra','dec','e1','e2','weight','m','c1_dp','c2_dp','c1_nb','c2_nb','z_b'][wheremask]
         if sourceargs["fullpofz"]:
-            pofz = sourceargs['fitspofz'][1][itern*chunksize:(itern+1)*chunksize]
+            pofz = sourceargs['fitspofz'][1][wheremask]
             pofz = pofz.view(pofz.dtype[0]).reshape(pofz.shape + (-1,))
 
         sourceargs['iter'] = sourceargs['iter'] + 1
         Ngal = np.shape(datagal)[0]
-    if sourceargs['type'] == "rcslens_ascii":
+
+    if sourceargs['type'] == "rcslens" and filetype == "ascii":
         itern = sourceargs['iter']
         if itern == 0:
             import pandas
             sourceargs['dfchunks'] = pandas.read_csv("rcslens_ptestimate_zbest.tsv", names=(['ra','dec','e1','e2','weight','m','c1_dp','c2_dp','c1_nb','c2_nb','z_b']), usecols=(range(1, 12)), chunksize=chunksize, delim_whitespace=1, skiprows=1)
         datagal = sourceargs['dfchunks'].next()
-        #print datagal
+
         pofz = 0
         if sourceargs["fullpofz"]:
-            print "Not implemented"
+            print "Photo-z pdf not implemented in ascii"
+            exit(11)
+        if sourceargs["maglim"]:
+            print "Maglim not implemented"
             exit(11)
 
         sourceargs['iter'] = sourceargs['iter'] + 1
