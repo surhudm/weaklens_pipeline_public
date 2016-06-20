@@ -1,0 +1,9 @@
+lens:
+    type: lowz_rcsrestrict
+    zmin: 0.15
+    zmax: 0.43
+
+source:
+    type: rcslens
+    maglim: 25.0
+    fullpofz: False
