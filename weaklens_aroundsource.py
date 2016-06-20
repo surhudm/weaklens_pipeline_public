@@ -71,9 +71,9 @@ while not done:
     #for i in frogress.bar(range(Ngal)):
     for i in range(Ngal):
 
-        if sourceargs['type'] == "rcslens":
+        if sourceargs['filetype'] == "fits":
             ragal, decgal, e1gal, e2gal, wgal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal = datagal[i]
-        elif sourceargs['type'] == "rcslens_ascii":
+        elif sourceargs['filetype'] == "ascii":
             ragal, decgal, e1gal, e2gal, wgal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal = datagal.ra.values[i], datagal.dec.values[i], datagal.e1.values[i],datagal.e2.values[i],datagal.weight.values[i],datagal.m.values[i],datagal.c1_dp.values[i],datagal.c2_dp.values[i],datagal.c1_nb.values[i],datagal.c2_nb.values[i],datagal.z_b.values[i]
 
         wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal)
