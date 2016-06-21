@@ -1,10 +1,28 @@
 lens:
-    type: lowz_rcsrestrict
+    # type: lowz_rcsrestrict
+    # zmin: 0.15
+    # zmax: 0.43
+
+    type: camira
+    hsc-release: s15b
+    version: v1
     zmin: 0.15
     zmax: 0.43
+    lammin: 20.0
+    lammax: 1000.0
 
 source:
-    type: rcslens
+    # type: rcslens
+    # filetype: fits
+    # maglim: 25.0
+    # fullpofz: False
+    # include_corrections: True
+
+    type: hsc-wide
     filetype: fits
-    maglim: 25.0
-    fullpofz: False
+    fullpofz: True
+    pofz_type: demp
+    pofz_zmin: 0.0
+    pofz_zdiff: 0.01
+    pofz_zbins: 601
+    

@@ -63,25 +63,31 @@ while not done:
 
     # For every source, query the clusters around it
     #for i in frogress.bar(range(Ngal)):
-    for i in range(Ngal):
+    #for i in range(Ngal):
+    for i in range(10):
 
         if sourceargs['filetype'] == "fits":
-            ragal, decgal, e1gal, e2gal, wgal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal = datagal[i]
+            if sourceargs['include_corrections']:
+                ragal, decgal, e1gal, e2gal, wgal, mgal, c1_dp, c2_dp, c1_nb, c2_nb = datagal[i]
+                zphotgal = 0.0
+            else:
+                ragal, decgal, e1gal, e2gal = datagal[i]
+                wgal = 1.0
+                mgal = 0.0
+                c1_dp = 0.0
+                c2_dp = 0.0
+                c1_nb = 0.0
+                c2_nb = 0.0
+                zphotgal = 0.0
+                print ragal, decgal, e1gal, e2gal
+
         elif sourceargs['filetype'] == "ascii":
             ragal, decgal, e1gal, e2gal, wgal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal = datagal.ra.values[i], datagal.dec.values[i], datagal.e1.values[i],datagal.e2.values[i],datagal.weight.values[i],datagal.m.values[i],datagal.c1_dp.values[i],datagal.c2_dp.values[i],datagal.c1_nb.values[i],datagal.c2_nb.values[i],datagal.z_b.values[i]
 
         if sourceargs["fullpofz"]:
-            '''
-            argind = np.argmax(np.array(pofz[i], dtype=np.float32))
-            pofznew = np.zeros(70)
-            pofznew[argind] = 1.0
-            print 0.025 + argind*0.05
-            wpipe.process_pofz(pofznew)
-            zlens = np.arange(0.16, 0.4, 0.01)
-            for i in range(zlens.size):
-                print zlens[i], wpipe.sigmacritinverse(zlens[i])
-            '''
             wpipe.process_pofz(np.array(pofz[i], dtype=np.float32))
+        else:
+            zphotgal = pofz[i]
 
         #exit(11)
         wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, sourceargs["fullpofz"])
