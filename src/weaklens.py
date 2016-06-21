@@ -165,9 +165,24 @@ class weaklens(_object):
         return _weaklens.weaklens_finalize_lenses(self)
 
 
-    def process_source(self, sra, sdec, se1, se2, swt, smcat, sc1_dp, sc2_dp, sc1_nb, sc2_nb, szbest):
-        """process_source(weaklens self, float sra, float sdec, float se1, float se2, float swt, float smcat, float sc1_dp, float sc2_dp, float sc1_nb, float sc2_nb, float szbest) -> int"""
-        return _weaklens.weaklens_process_source(self, sra, sdec, se1, se2, swt, smcat, sc1_dp, sc2_dp, sc1_nb, sc2_nb, szbest)
+    def process_source(self, sra, sdec, se1, se2, swt, smcat, sc1_dp, sc2_dp, sc1_nb, sc2_nb, szbest, usepdf):
+        """process_source(weaklens self, float sra, float sdec, float se1, float se2, float swt, float smcat, float sc1_dp, float sc2_dp, float sc1_nb, float sc2_nb, float szbest, bool usepdf) -> int"""
+        return _weaklens.weaklens_process_source(self, sra, sdec, se1, se2, swt, smcat, sc1_dp, sc2_dp, sc1_nb, sc2_nb, szbest, usepdf)
+
+
+    def setup_pofz(self, pofz_zmin, pofz_zdiff, xNpz):
+        """setup_pofz(weaklens self, double pofz_zmin, double pofz_zdiff, int xNpz) -> int"""
+        return _weaklens.weaklens_setup_pofz(self, pofz_zmin, pofz_zdiff, xNpz)
+
+
+    def process_pofz(self, pofz):
+        """process_pofz(weaklens self, double * pofz) -> int"""
+        return _weaklens.weaklens_process_pofz(self, pofz)
+
+
+    def sigmacritinverse(self, zlens):
+        """sigmacritinverse(weaklens self, double zlens) -> double"""
+        return _weaklens.weaklens_sigmacritinverse(self, zlens)
 
 
     def finalize_results(self):

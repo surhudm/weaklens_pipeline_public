@@ -8,5 +8,11 @@
     #define SWIG_FILE_WITH_INIT
     #include "weaklens.h"
 %}
+%include numpy.i
+%init %{
+import_array();
+%}
+%apply (float* IN_ARRAY1, int DIM1) {(float* pofz, int zbins)};
+%apply (double* IN_ARRAY1, int DIM1) {(double* pofz, int zbins)};
 
 %include "weaklens.h"

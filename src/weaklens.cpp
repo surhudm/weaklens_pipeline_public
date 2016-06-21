@@ -25,6 +25,11 @@ weaklens::weaklens()
     lenses_alloc=false;
     lenses_finalized=false;
     zredmin=1.E30;
+    zredmax=-1.E30;
+    bool_init_sigcritinv = false;
+    pz_alloc=false;
+    gee = 4.2994e-9;
+    cee = 3.E5;
 
     if (verbose){
         fprintf(stderr, "Initialized cosmology, and delta sigma sum arrays\n");
@@ -58,6 +63,11 @@ weaklens::weaklens(float xrmin, float xrmax, int xrbins, char *xoutfile, bool xv
     lenses_alloc=false;
     lenses_finalized=false;
     zredmin=1.E30;
+    zredmax=-1.E30;
+    bool_init_sigcritinv = false;
+    pz_alloc=false;
+    gee = 4.2994e-9;
+    cee = 3.E5;
 
     if (verbose){
         fprintf(stderr, "Initialized cosmology, and delta sigma sum arrays\n");
@@ -106,6 +116,17 @@ weaklens::~weaklens(){
             fprintf(stderr, "Did not free memory related to tree and timer as lenses were not finalized\n");
         }
     }
+    if (bool_init_sigcritinv){
+        gsl_interp_accel_free(sigcritinv_acc);
+        gsl_spline_free(sigcritinv_spline);
+        bool_init_sigcritinv=false;
+    }
+    if (pz_alloc){
+        delete [] pz_xz;
+        delete [] pz_chiz;
+        delete [] pz_fac;
+        pz_alloc = false;
+    }
 }
 
 int weaklens::allocate_lens_memory(int xNcen)
@@ -152,6 +173,7 @@ int weaklens::process_lens(float xra, float xdec, float xzred, float xwt)
     datacen[3*Nfill+2] = s_ldec[Nfill];
     Dcom   [Nfill] = cosmo->Dcofz(double(xzred));
     if (xzred<zredmin) zredmin = xzred;
+    if (xzred>zredmax) zredmax = xzred;
     Nfill++;
     if (verbose){
         fprintf(stderr, "Filled %d-th lenses with ra:%f dec:%f\n", Nfill, xra*180./M_PI, xdec*180./M_PI);
@@ -209,7 +231,7 @@ int weaklens::finalize_lenses()
 int weaklens::test_searchrecord(){
 }
 
-int weaklens::process_source(float sra, float sdec, float se1, float se2, float swt, float smcat, float sc1_dp, float sc2_dp, float sc1_nb, float sc2_nb, float szbest)
+int weaklens::process_source(float sra, float sdec, float se1, float se2, float swt, float smcat, float sc1_dp, float sc2_dp, float sc1_nb, float sc2_nb, float szbest, bool usepdf=false)
 {
     if(!lenses_finalized){
         fprintf(stderr, "Lenses were not finalized, please call finalize_lenses() before processing sources\n");
@@ -231,9 +253,7 @@ int weaklens::process_source(float sra, float sdec, float se1, float se2, float 
     double sy=c_sdec*s_sra;
     double sz=s_sdec;
     double dCofzs=cosmo->Dcofz(double(szbest));
-    double gee=4.2994e-9;
-    double cee=3.E5;
-    double sigc_inv_fac=1.e12*4.*M_PI*gee/(cee*cee)*(1.+szbest)/dCofzs;
+    double sigc_inv_fac=1.e12*4.*M_PI*gee/(cee*cee)/dCofzs;
 
     // Ok now get results
     kdtree2::KDTreeResultVector res;
@@ -253,17 +273,29 @@ int weaklens::process_source(float sra, float sdec, float se1, float se2, float 
         float dis2=sqrt(res.at(k).dis);
         float logrp = log10(dis2*Dcom[xx]);
 
-        if (szbest<=zred[xx]) continue;
+        if ((!usepdf) && szbest<=zred[xx]) continue;
 
-        if(logrp<=logrmin || logrp>=logrmax) continue;
+        if (logrp<=logrmin || logrp>=logrmax) continue;
         //std::cout<<szbest<<" "<<zred[xx]<<std::endl;
 
-        int rpbin=int((logrp-logrmin)/logrdiff);
+        int rpbin = int((logrp-logrmin)/logrdiff);
 
-        double av_sigc_inv= sigc_inv_fac*Dcom[xx]*(dCofzs-Dcom[xx])/(1.+szbest)*(1+zred[xx]);
+        double av_sigc_inv = 0.0;
+        if (!usepdf){
+            av_sigc_inv = sigc_inv_fac*Dcom[xx]*(dCofzs-Dcom[xx])*(1+zred[xx]);
+        }else{
+            av_sigc_inv = sigmacritinverse(zred[xx]);
+        }
+        //fprintf(stderr, "zred:%f zbest:%f avsigcinv:%le\n", zred[xx], szbest, av_sigc_inv);
+
 
         /// Check thoroughly here
         double wls=wt[xx]*swt*pow(av_sigc_inv,2);
+        if (std::isnan(wls)){
+            fprintf(stderr, "zred:%f zbest:%f avsigcinv:%le\n", zred[xx], szbest, av_sigc_inv);
+            continue;
+        }
+        double wls_by_av_sigc_inv=wt[xx]*swt*av_sigc_inv;
 
         ///2->s 1->l
         double cos_alps_alpl=c_sra*c_lra[xx]+s_sra*s_lra[xx];
@@ -277,8 +309,8 @@ int weaklens::process_source(float sra, float sdec, float se1, float se2, float 
         double etan=-se1*(2*cosphi*cosphi-1)+se2*(2*sinphi*cosphi);
         double ecross=se2*(2*cosphi*cosphi-1)+se1*(2*sinphi*cosphi);
 
-        sumdsig_num[rpbin]+=(etan*wls/av_sigc_inv);
-        sumdcross_num[rpbin]+=(ecross*wls/av_sigc_inv);
+        sumdsig_num[rpbin]+=(etan*wls_by_av_sigc_inv);
+        sumdcross_num[rpbin]+=(ecross*wls_by_av_sigc_inv);
         sumdcount_num[rpbin]+=(wt[xx]);
         sumwls[rpbin]+=wls;
         sumwls_ms[rpbin]+=(wls*(1+smcat));
@@ -314,4 +346,98 @@ int weaklens::finalize_results(){
     }
     fclose(fout);
     return 0;
+}
+
+int weaklens::process_pofz(double *pofz, int zbins)
+{
+
+    // Free up spline if already initialized
+    if (bool_init_sigcritinv){
+        gsl_interp_accel_free(sigcritinv_acc);
+        gsl_spline_free(sigcritinv_spline);
+        bool_init_sigcritinv=false;
+    }
+
+    // This function generates a spline between pofz_zmin and pofz_zmax
+#ifndef SWIG
+    const int static Nspl=75;
+#else
+    const int Nspl=75;
+#endif
+    double xx[Nspl];
+    double yy[Nspl];
+    for (int i=0; i<Nspl; i++)
+    {
+        xx[i] = 0.0 + i*(zredmax+0.1)/(Nspl-1.0);
+
+        // av_sigc_inv = av_sigc_inv_num/av_sigc_inv_den
+        double av_sigc_inv_num=0.0;
+        double av_sigc_inv_den=0.0;
+        double chi = cosmo->Dcofz(xx[i]);
+        for(int k=0;k<Npz;k++){
+            av_sigc_inv_den+=pofz[k];
+            if(xx[i]>pz_xz[k]) continue;
+            double fac=pz_fac[k]*chi*(pz_chiz[k]-chi)*(1+xx[i]);
+            av_sigc_inv_num+=pofz[k]*fac;
+        }
+
+        yy[i] = av_sigc_inv_num/av_sigc_inv_den;
+    }
+    sigcritinv_acc = gsl_interp_accel_alloc ();
+    sigcritinv_spline = gsl_spline_alloc (gsl_interp_cspline, Nspl);
+    bool_init_sigcritinv = true;
+    gsl_spline_init (sigcritinv_spline, xx, yy, Nspl);
+    
+    if(verbose){
+    std::cout<<"# "<<"The spline for sigmacritinverse is now initialized"<<std::endl;
+    }
+
+    /*
+    for(int i=0; i<zbins; i++)
+        std::cout<<pofz[i]<<" ";
+    std::cout<<std::endl;
+    // Now go through the indexing
+    */
+    //Niter++;
+    //if(Niter%100000==0) printf("%ld done %.1lf seconds\n", Niter, timer->elapsed());
+    return 1;
+}
+
+double weaklens::sigmacritinverse(double zlens)
+{
+    if (!bool_init_sigcritinv){
+        std::cout<<"Spline for sigmacritinverse needs to be initialized before use"<<std::endl;
+        exit(11);
+    }
+    
+    double result = 0.0;
+    try{
+        result = gsl_spline_eval (sigcritinv_spline, zlens, sigcritinv_acc);
+    }
+    catch (std::exception& e){
+        result = 0.0;
+    }
+
+    if (result<0.0){
+        result = 0.0;
+    }
+
+    return result;
+}
+
+int weaklens::setup_pofz(double pofz_zmin, double pofz_zdiff, int xNpz)
+{
+    Npz = xNpz;
+    pz_xz = new double [Npz];
+    pz_chiz = new double [Npz];
+    pz_fac = new double [Npz];
+    
+    for(int kk=0;kk<Npz;kk++){
+        pz_xz[kk]=pofz_zmin+kk*pofz_zdiff;
+        pz_chiz[kk]=cosmo->Dcofz(pz_xz[kk]);
+        pz_fac[kk]=1.e12*4.*M_PI*gee/(cee*cee)/(pz_chiz[kk]);
+    }
+    pz_alloc=true;
+
+    return 1;
 }

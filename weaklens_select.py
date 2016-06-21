@@ -29,7 +29,7 @@ def source_select(sourceargs, chunksize):
         if status:
             return datagal, sourceargs, Ngal, status, pofz
 
-        wheremask = fits[1].where("MAG_extcorr_r < %.5f && #row>%d && #row<=%d" % (sourceargs['maglim'], itern*chunksize, (itern+1)*chunksize))
+        wheremask = sourceargs['fits'][1].where("MAG_extcorr_r < %.5f && #row>%d && #row<=%d" % (sourceargs['maglim'], itern*chunksize, (itern+1)*chunksize))
         datagal = sourceargs['fits'][1]['ra','dec','e1','e2','weight','m','c1_dp','c2_dp','c1_nb','c2_nb','z_b'][wheremask]
         if sourceargs["fullpofz"]:
             pofz = sourceargs['fitspofz'][1][wheremask]
@@ -38,7 +38,7 @@ def source_select(sourceargs, chunksize):
         sourceargs['iter'] = sourceargs['iter'] + 1
         Ngal = np.shape(datagal)[0]
 
-    if sourceargs['type'] == "rcslens" and filetype == "ascii":
+    if sourceargs['type'] == "rcslens" and sourceargs["filetype"] == "ascii":
         itern = sourceargs['iter']
         if itern == 0:
             import pandas

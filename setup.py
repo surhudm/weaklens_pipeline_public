@@ -5,11 +5,13 @@ setup.py file for wpipe
 """
 
 from distutils.core import setup, Extension
+import numpy
 
 weaklens_module = Extension('_weaklens',
                            sources=['src/weaklens.i', 'src/weaklens.cpp', 'src/cosmology.cpp', 'src/haloes.cpp', 'src/powerspectrum.cpp', 'src/gauleg.cpp', 'src/kdtree2.cpp'],
                            swig_opts=["-c++"],
                            libraries=['m','gsl','gslcblas', 'boost_system'],
+                           include_dirs=[numpy.get_include()],
                            )
 
 setup (name        = 'wpipe',

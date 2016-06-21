@@ -50,15 +50,9 @@ sourceargs = config["source"]
 sourceargs["iter"] = 0
 
 if sourceargs["fullpofz"]:
-    pofz_xz = sourceargs["pofz_zmin"] + sourceargs["pofz_zdiff"]*np.arange(sourceargs["pofz_zbins"])
-    pofz_dCofzs = pofz_xz * 0.0
-    pofz_factor = pofz_xz * 0.0
-    pofz_sigc_inv_fac = pofz_xz * 0.0
-    for i in range(pofz_xz.size):
-        pofz_dCofzs[i] = cosmo.Dcofz(pofz_xz[i])
-        pofz_sigc_inv_fac[i]=1.e12*4*np.pi*gee/(cee*cee)*(1+pofz_xz[i])/(pofz_dCofzs[i])
-        pofz_factor[i]=pofz_sigc_inv_fac[i]/(1.+pofz_xz[i])
-
+    print "Setting up P(z)"
+    wpipe.setup_pofz(sourceargs["pofz_zmin"], sourceargs["pofz_zdiff"], sourceargs["pofz_zbins"])
+print sourceargs["fullpofz"], type(sourceargs["fullpofz"])
 
 while not done:
     #datagal, sourceargs, Ngal, status, pofz = source_select(sourceargs, chunksize=1000000)
@@ -76,7 +70,21 @@ while not done:
         elif sourceargs['filetype'] == "ascii":
             ragal, decgal, e1gal, e2gal, wgal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal = datagal.ra.values[i], datagal.dec.values[i], datagal.e1.values[i],datagal.e2.values[i],datagal.weight.values[i],datagal.m.values[i],datagal.c1_dp.values[i],datagal.c2_dp.values[i],datagal.c1_nb.values[i],datagal.c2_nb.values[i],datagal.z_b.values[i]
 
-        wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal)
+        if sourceargs["fullpofz"]:
+            '''
+            argind = np.argmax(np.array(pofz[i], dtype=np.float32))
+            pofznew = np.zeros(70)
+            pofznew[argind] = 1.0
+            print 0.025 + argind*0.05
+            wpipe.process_pofz(pofznew)
+            zlens = np.arange(0.16, 0.4, 0.01)
+            for i in range(zlens.size):
+                print zlens[i], wpipe.sigmacritinverse(zlens[i])
+            '''
+            wpipe.process_pofz(np.array(pofz[i], dtype=np.float32))
+
+        #exit(11)
+        wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, sourceargs["fullpofz"])
         #break
     #break
 
