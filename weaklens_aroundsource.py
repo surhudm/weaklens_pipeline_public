@@ -9,7 +9,7 @@ import pyfits
 import fitsio
 import argparse
 import yaml
-from weaklens_selectnew import lens_select, source_select
+from weaklens_select import lens_select, source_select
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("--config", help="Configuration file")
