@@ -9,7 +9,7 @@ import pyfits
 import fitsio
 import argparse
 import yaml
-from weaklens_select import lens_select, source_select
+from weaklens_selectnew import lens_select, source_select
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("--config", help="Configuration file")
@@ -52,46 +52,71 @@ sourceargs["iter"] = 0
 if sourceargs["fullpofz"]:
     print "Setting up P(z)"
     wpipe.setup_pofz(sourceargs["pofz_zmin"], sourceargs["pofz_zdiff"], sourceargs["pofz_zbins"])
-print sourceargs["fullpofz"], type(sourceargs["fullpofz"])
+
+#### try:
+####     fout = open("Test_%s" % sourceargs["pofz_type"], "w")
+#### except:
+####     fout = open("Test_debug", "w")
 
 while not done:
+    itern = itern + 1
     #datagal, sourceargs, Ngal, status, pofz = source_select(sourceargs, chunksize=1000000)
-    datagal, sourceargs, Ngal, status, pofz = source_select(sourceargs, chunksize=100000)
+    datagal, sourceargs, Ngal, status, pofz, datagalflag, pofzflag = source_select(sourceargs, chunksize=1000000)
 
     if status!=0 :
         break
 
+    #if itern==10:
+    #    break
+
     # For every source, query the clusters around it
-    #for i in frogress.bar(range(Ngal)):
+    try:
+        sys.stdout.write("\n %s: \n" % (sourceargs['fits_list'][sourceargs['iter']-1]))
+    except:
+        sys.stdout.write("\n Passed: \n")
+
+    for i in frogress.bar(range(Ngal)):
+        if not datagalflag[i] or not pofzflag[i]:
+            continue
     #for i in range(Ngal):
-    for i in range(10):
+    #for i in range(10):
 
         if sourceargs['filetype'] == "fits":
             if sourceargs['include_corrections']:
                 ragal, decgal, e1gal, e2gal, wgal, mgal, c1_dp, c2_dp, c1_nb, c2_nb = datagal[i]
                 zphotgal = 0.0
             else:
-                ragal, decgal, e1gal, e2gal = datagal[i]
-                wgal = 1.0
-                mgal = 0.0
-                c1_dp = 0.0
-                c2_dp = 0.0
-                c1_nb = 0.0
-                c2_nb = 0.0
-                zphotgal = 0.0
-                print ragal, decgal, e1gal, e2gal
+                ragal, decgal, e1gal, e2gal, wgal = datagal[i]
+                if sourceargs['type'] != "hsc-wide-josh":
+                    #print "\nbefore:", ragal, decgal, e1gal, e2gal, wgal
+                    wgal = 1./(0.365**2+wgal**2)
+                    e2gal = -e2gal
+                    #print "\nafter:", ragal, decgal, e1gal, e2gal, wgal
+                e1gal = np.float64(e1gal)
+                e2gal = np.float64(e2gal)
+                mgal = 0.0*ragal
+                c1_dp = 0.0*ragal
+                c2_dp = 0.0*ragal
+                c1_nb = 0.0*ragal
+                c2_nb = 0.0*ragal
+                zphotgal = 0.0*ragal
+                #print ragal, decgal, e1gal, e2gal, wgal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal
 
         elif sourceargs['filetype'] == "ascii":
             ragal, decgal, e1gal, e2gal, wgal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal = datagal.ra.values[i], datagal.dec.values[i], datagal.e1.values[i],datagal.e2.values[i],datagal.weight.values[i],datagal.m.values[i],datagal.c1_dp.values[i],datagal.c2_dp.values[i],datagal.c1_nb.values[i],datagal.c2_nb.values[i],datagal.z_b.values[i]
 
         if sourceargs["fullpofz"]:
-            wpipe.process_pofz(np.array(pofz[i], dtype=np.float32))
+            if np.isnan(pofz[i][0]):
+                continue
+            else:
+                pass
+            status = wpipe.process_pofz(np.array(pofz[i], dtype=np.float32))
+            if status:
+                continue
         else:
-            zphotgal = pofz[i]
+            zphotgal = np.float64(pofz[i])
 
-        #exit(11)
         wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, sourceargs["fullpofz"])
-        #break
-    #break
+    wpipe.finalize_results()
 
 wpipe.finalize_results()

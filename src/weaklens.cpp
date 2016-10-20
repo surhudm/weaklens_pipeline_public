@@ -233,6 +233,10 @@ int weaklens::test_searchrecord(){
 
 int weaklens::process_source(float sra, float sdec, float se1, float se2, float swt, float smcat, float sc1_dp, float sc2_dp, float sc1_nb, float sc2_nb, float szbest, bool usepdf=false)
 {
+
+    if(std::isnan(sra) || std::isnan(sdec) || std::isnan(se1) || std::isnan(se2) || std::isnan(swt) || std::isnan(smcat) || std::isnan(sc1_dp) || std::isnan(sc2_dp) || std::isnan(sc1_nb) || std::isnan(sc2_nb) || std::isnan(szbest)){
+        return 1;
+    }
     if(!lenses_finalized){
         fprintf(stderr, "Lenses were not finalized, please call finalize_lenses() before processing sources\n");
         //exit(1);
@@ -305,9 +309,17 @@ int weaklens::process_source(float sra, float sdec, float se1, float se2, float 
         double sinangle=sqrt(1-cosangle*cosangle);
         double cosphi=c_ldec[xx]*sin_alps_alpl/sinangle;
         double sinphi=(-s_ldec[xx]*c_sdec+c_ldec[xx]*s_sdec*cos_alps_alpl)/sinangle;
-
+        
+        // The following works definitely for Josh's catalog, with e2 = -e2_josh_catalog
         double etan=-se1*(2*cosphi*cosphi-1)+se2*(2*sinphi*cosphi);
         double ecross=se2*(2*cosphi*cosphi-1)+se1*(2*sinphi*cosphi);
+        
+        // Test with Hironao's code
+        //double etan=-(se1*(2*cosphi*cosphi-1)+se2*(2*sinphi*cosphi));
+        //double ecross=-se2*(2*cosphi*cosphi-1)+se1*(2*sinphi*cosphi);
+
+        if (std::isnan(etan) || std::isnan(ecross))
+             continue;
 
         sumdsig_num[rpbin]+=(etan*wls_by_av_sigc_inv);
         sumdcross_num[rpbin]+=(ecross*wls_by_av_sigc_inv);
@@ -328,7 +340,7 @@ int weaklens::process_source(float sra, float sdec, float se1, float se2, float 
 
 
     // Now go through the indexing
-    if(Niter%100000==0) printf("%ld done %.1lf seconds\n", Niter, timer->elapsed());
+    //if(Niter%100000==0) printf("%ld done %.1lf seconds\n", Niter, timer->elapsed());
 
     return 0;
 }
@@ -381,7 +393,11 @@ int weaklens::process_pofz(double *pofz, int zbins)
             av_sigc_inv_num+=pofz[k]*fac;
         }
 
-        yy[i] = av_sigc_inv_num/av_sigc_inv_den;
+        if (av_sigc_inv_den==0.0 || std::isnan(av_sigc_inv_den) || std::isnan(av_sigc_inv_num)){
+            yy[i] = 0.0;
+	}else{
+            yy[i] = av_sigc_inv_num/av_sigc_inv_den;
+	}
     }
     sigcritinv_acc = gsl_interp_accel_alloc ();
     sigcritinv_spline = gsl_spline_alloc (gsl_interp_cspline, Nspl);
@@ -400,7 +416,7 @@ int weaklens::process_pofz(double *pofz, int zbins)
     */
     //Niter++;
     //if(Niter%100000==0) printf("%ld done %.1lf seconds\n", Niter, timer->elapsed());
-    return 1;
+    return 0;
 }
 
 double weaklens::sigmacritinverse(double zlens)
