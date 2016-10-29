@@ -7,7 +7,7 @@ import glob
 
 def lens_select(lensargs):
     if lensargs['type'] == "redmapper":
-        hdulist = pyfits.open("/home/surhud/DataStore/redmapper/redmapper_dr8_public_v5.10_catalog.fits")
+        hdulist = pyfits.open("DataStore/redmapper/redmapper_dr8_public_v5.10_catalog.fits")
         data = hdulist[1].data
         ra = data["ra"]
         dec = data["dec"]
@@ -26,7 +26,7 @@ def lens_select(lensargs):
         return ra, dec, zred, wt
 
     if lensargs['type'] == "redmapper-random":
-        ra, dec, zred, lamda, wt = np.loadtxt("/home/surhud/DataStore/redmapper/redmapper_public_v5.10_randoms_%05d.dat" % (lensargs["rannum"]), unpack=1) 
+        ra, dec, zred, lamda, wt = np.loadtxt("DataStore/redmapper/redmapper_public_v5.10_randoms_%05d.dat" % (lensargs["rannum"]), unpack=1) 
         idx = (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"]) & (lamda>lensargs["lammin"]) & (lamda<=lensargs["lammax"])
         ra = ra[idx]
         dec = dec[idx]
@@ -37,7 +37,7 @@ def lens_select(lensargs):
         return ra[idx], dec[idx], zred[idx], wt[idx]
 
     if lensargs['type'] == "sdss-vagc-lbg":
-        ra, dec, zred, mstel, mag = np.loadtxt("/home/surhud/DataStore/LBG/Isolated_v0.dat", unpack=1)
+        ra, dec, zred, mstel, mag = np.loadtxt("DataStore/LBG/Isolated_v0.dat", unpack=1)
         mstel = np.log10(mstel)
         wt = ra/ra
 
@@ -53,7 +53,7 @@ def lens_select(lensargs):
         return ra[idx], dec[idx], zred[idx], wt[idx]
 
     if lensargs['type'] == "camira":
-        ra, dec, zred, lam = np.loadtxt("/home/surhud/DataStore/camira/%s/%s/camira_catalog.dat" % (lensargs['hsc-release'], lensargs['version']), unpack=1, usecols=(0, 1, 2, 3))
+        ra, dec, zred, lam = np.loadtxt("DataStore/camira/%s/%s/camira_catalog.dat" % (lensargs['hsc-release'], lensargs['version']), unpack=1, usecols=(0, 1, 2, 3))
         wt = lam/lam
 
         idx = (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"]) & (lam>lensargs["lammin"]) & (lam<=lensargs["lammax"])
@@ -66,7 +66,7 @@ def source_select(sourceargs, chunksize):
     if sourceargs['type'] == "hsc-wide" and sourceargs['filetype'] == "fits" and  sourceargs["fullpofz"]:
         itern = sourceargs['iter']
         if itern == 0:
-            sourceargs['fits_list'] = glob.glob("/home/surhud/DataStore/S15B_v2.1/*_tracts/*_%s.fits" % (sourceargs['pofz_type']))
+            sourceargs['fits_list'] = glob.glob("DataStore/S15B_v2.1/*_tracts/*_%s.fits" % (sourceargs['pofz_type']))
             
         if itern == len(sourceargs['fits_list']):
             status = 1
@@ -126,7 +126,7 @@ def source_select(sourceargs, chunksize):
 
         itern = sourceargs['iter']
         if itern == 0:
-            sourceargs['fits_list'] = glob.glob("/home/surhud/DataStore/S15B_v2.1/*_tracts/*_pz.fits")
+            sourceargs['fits_list'] = glob.glob("DataStore/S15B_v2.1/*_tracts/*_pz.fits")
             #sourceargs['fits_list'] = glob.glob("/home/surhud/DataStore/S15B_v2.1/WIDE12H_tracts/*_pz.fits")
             
         if itern == len(sourceargs['fits_list']):
@@ -191,7 +191,7 @@ def source_select(sourceargs, chunksize):
 
         itern = sourceargs['iter']
         if itern == 0:
-            sourceargs['fits'] = fitsio.FITS("/home/surhud/DataStore/RF/hsc_s15b_wl_catalog_v0.fits")
+            sourceargs['fits'] = fitsio.FITS("DataStore/RF/hsc_s15b_wl_catalog_v0.fits")
             #sourceargs['fits'] = fitsio.FITS("/home/surhud/DataStore/rf_wide12h_hsc_s15b_wl_catalog_v0.fits")
             sourceargs['nrows'] = sourceargs['fits'][1].read_header()['naxis2']
 
