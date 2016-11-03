@@ -90,13 +90,16 @@ def source_select(sourceargs, chunksize):
         ira = data["ira"]
         idec = data["idec"]
 
-        datagalflag = (imag_cmodel < 25.0) & (iflux_cmodel/iflux_cmodel_err >=10) & (ishape_hsm_regauss_resolution> 0.3) & (ishape_hsm_regauss_e1**2 + ishape_hsm_regauss_e2**2 < 4) & (ishape_hsm_regauss_sigma<0.4)
+        datagalflag = (imag_cmodel < 25.0) & (iflux_cmodel/iflux_cmodel_err >=10) & (ishape_hsm_regauss_resolution> 1./3.) & (ishape_hsm_regauss_e1**2 + ishape_hsm_regauss_e2**2 < 4) & (ishape_hsm_regauss_sigma<0.4)
+        #datagalflag = (imag_cmodel < 24.5) & (iflux_cmodel/iflux_cmodel_err >=10) & (iflux_cmodel/iflux_cmodel_err <80) & (ishape_hsm_regauss_resolution> 0.3) & (ishape_hsm_regauss_e1**2 + ishape_hsm_regauss_e2**2 < 4) & (ishape_hsm_regauss_sigma<0.4)
+        #datagalflag = (imag_cmodel < 27.0)
+
         datagal = np.array([ira, idec, ishape_hsm_regauss_e1, ishape_hsm_regauss_e2, ishape_hsm_regauss_sigma]).T
 
         hdulist = pyfits.open(sourceargs['fits_list'][itern].split("_pdf_%s" % sourceargs['pofz_type'])[0] + ".fits")
         data = hdulist[1].data
-        z_median = data["%s_photoz_median" % (sourceargs['pofz_type'])]
         if sourceargs['pofz_type'] == "demp":
+            z_median = data["%s_photoz_median" % (sourceargs['pofz_type'])]
             z_mode = data["%s_photoz_mode" % (sourceargs['pofz_type'])]
             z_conf = data["%s_photoz_conf_median" % (sourceargs['pofz_type'])]
             pofzflag = (np.absolute(z_mode - z_median)/(1+z_mode) < 0.8) & (z_conf > 0.09)
@@ -112,6 +115,8 @@ def source_select(sourceargs, chunksize):
             stddev = data["%s_photoz_stddev_mean" % (sourceargs['pofz_type'])]
             conf_mean = data["%s_photoz_conf_mean" % (sourceargs['pofz_type'])]
             pofzflag = (stddev<3) & (conf_mean>0.13)
+        elif sourceargs['pofz_type'] == "frrfv0":
+            pofzflag = (datagalflag == True)
 
         sourceargs['fitspofz'] = fitsio.FITS(sourceargs['fits_list'][itern])
 
@@ -200,7 +205,7 @@ def source_select(sourceargs, chunksize):
         Ngal = 0
         pofz = 0
         if status:
-            return datagal, sourceargs, Ngal, status, pofz
+            return datagal, sourceargs, Ngal, status, pofz, 0, 0
 
         wheremask = sourceargs['fits'][1].where("#row>%d && #row<=%d" % (itern*chunksize, (itern+1)*chunksize))
         datagal = sourceargs['fits'][1]['ra','dec','e1','e2','weight'][wheremask]
@@ -211,5 +216,8 @@ def source_select(sourceargs, chunksize):
 
         sourceargs['iter'] = sourceargs['iter'] + 1
         Ngal = np.shape(datagal)[0]
+        forflag = np.arange(Ngal)
+        datagalflag = (forflag==forflag)
+        pofzflag = (forflag==forflag)
             
     return datagal, sourceargs, Ngal, status, pofz, datagalflag, pofzflag

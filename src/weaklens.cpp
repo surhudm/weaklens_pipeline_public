@@ -311,13 +311,10 @@ int weaklens::process_source(float sra, float sdec, float se1, float se2, float 
         double sinphi=(-s_ldec[xx]*c_sdec+c_ldec[xx]*s_sdec*cos_alps_alpl)/sinangle;
         
         // The following works definitely for Josh's catalog, with e2 = -e2_josh_catalog
+        // This checks out with Hironao's code as well, with our sinphi = - sinphi from Hironao.
         double etan=-se1*(2*cosphi*cosphi-1)+se2*(2*sinphi*cosphi);
         double ecross=se2*(2*cosphi*cosphi-1)+se1*(2*sinphi*cosphi);
         
-        // Test with Hironao's code
-        //double etan=-(se1*(2*cosphi*cosphi-1)+se2*(2*sinphi*cosphi));
-        //double ecross=-se2*(2*cosphi*cosphi-1)+se1*(2*sinphi*cosphi);
-
         if (std::isnan(etan) || std::isnan(ecross))
              continue;
 
@@ -354,7 +351,7 @@ int weaklens::finalize_results(){
         float rr = logrmin + (i+0.5)*logrdiff;
         float rrmin = pow(10., logrmin + i*logrdiff);
         float rrmax = pow(10., logrmin + (i+1)*logrdiff);
-        fprintf(fout, "%e %le %le %le %le %le %e %le %le \n", rr, sumdsig_num[i], sumwls[i], sumwls_ms[i], sumdsig_num[i]/sumwls_ms[i], sumwls[i]/sumwl, rrmin/2+rrmax/2, sumdcross_num[i]/sumwls_ms[i], sumdcount_num[i]/sumwl);
+        fprintf(fout, "%e %le %le %le %le %le %e %le %le %le \n", rr, sumdsig_num[i], sumwls[i], sumwls_ms[i], sumdsig_num[i]/sumwls_ms[i], sumwls[i]/sumwl, rrmin/2+rrmax/2, sumdcross_num[i]/sumwls_ms[i], sumdcount_num[i]/sumwl, sumdcount_num[i]);
     }
     fclose(fout);
     return 0;
