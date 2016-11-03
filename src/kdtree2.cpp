@@ -12,8 +12,8 @@
 namespace kdtree2 {
 // utility
 
-inline float squared(const float x, const float per) {
-    float y=fabs(x);
+inline double squared(const double x, const double per) {
+    double y=fabs(x);
   if(per>0.0){
     if(y>per/2.) y=per-y;
   }
@@ -27,8 +27,8 @@ inline void swap(int& a, int&b) {
   b = tmp; 
 }
 
-inline void swap(float& a, float&b) {
-  float tmp;
+inline void swap(double& a, double&b) {
+  double tmp;
   tmp = a;
   a = b;
   b = tmp; 
@@ -46,7 +46,7 @@ inline bool operator<(const KDTreeResult& e1, const KDTreeResult& e2) {
 //
 //       KDTREE2_RESULT_VECTOR implementation
 // 
-float KDTreeResultVector::max_value() {
+double KDTreeResultVector::max_value() {
   return( (*begin()).dis ); // very first element
 }
 
@@ -54,7 +54,7 @@ void KDTreeResultVector::push_element_and_heapify(KDTreeResult& e) {
   push_back(e); // what a vector does.
   push_heap( begin(), end() ); // and now heapify it, with the new elt.
 }
-float KDTreeResultVector::replace_maxpri_elt_return_new_maxpri(KDTreeResult& e) {
+double KDTreeResultVector::replace_maxpri_elt_return_new_maxpri(KDTreeResult& e) {
   // remove the maximum priority element on the queue and replace it
   // with 'e', and return its priority.
   //
@@ -99,7 +99,7 @@ KDTree::KDTree(KDTreeArray& data_in,KDTreePeriod& xp,int xN, int xdim, int bs, b
     // allocate the memory for it. 
     printf("rearranging\n");
     //rearranged_data.resize( boost::extents[N][dim] );
-    rearranged_data=new float[N*dim];
+    rearranged_data=new double[N*dim];
     
     // permute the data for it.
     for (int i=0; i<N; i++) {
@@ -177,7 +177,7 @@ KDTreeNode* KDTree::build_tree_for_range(int l, int u, KDTreeNode* parent) {
     // That, we recompute ourself.
     //
     int c = -1;
-    float maxspread = 0.0;
+    double maxspread = 0.0;
     int m;
 
     for (int i=0;i<dim;i++) {
@@ -186,7 +186,7 @@ KDTreeNode* KDTree::build_tree_for_range(int l, int u, KDTreeNode* parent) {
       } else {
 	node->box[i] = parent->box[i];
       }
-      float spread = node->box[i].upper - node->box[i].lower; 
+      double spread = node->box[i].upper - node->box[i].lower; 
       if (spread>maxspread) {
 	maxspread = spread;
 	c=i; 
@@ -221,8 +221,8 @@ KDTreeNode* KDTree::build_tree_for_range(int l, int u, KDTreeNode* parent) {
       m = (l+u)/2;
       select_on_coordinate(c,m,l,u);  
     } else {
-      float sum; 
-      float average;
+      double sum; 
+      double average;
 
       /// Use median finding routine here
       /*
@@ -232,7 +232,7 @@ KDTreeNode* KDTree::build_tree_for_range(int l, int u, KDTreeNode* parent) {
 	  int *hist;
 	  hist=new int[Nc];
 	  for (int i=0;i<Nc;i++)hist[i]=0;
-	  float diff=(node->box[c].upper-node->box[c].lower)/Nc;
+	  double diff=(node->box[c].upper-node->box[c].lower)/Nc;
 	for (int k=l; k <= u; k++) {
 	  int bin=int((the_data[ind[k]*dim+c]-node->box[c].lower)/diff);
 	  if(bin>=0&&bin<Nc) hist[bin]++;
@@ -259,7 +259,7 @@ KDTreeNode* KDTree::build_tree_for_range(int l, int u, KDTreeNode* parent) {
 	for (int k=l; k <= u; k++) {
 	  sum += the_data[ind[k]*dim+c];
 	}
-	average = sum / static_cast<float> (u-l+1);
+	average = sum / static_cast<double> (u-l+1);
 	*/
       }/* else {
 	// average of top and bottom nodes.
@@ -315,8 +315,8 @@ void KDTree:: spread_in_coordinate(int c, int l, int u, interval& interv)
 {
   // return the minimum and maximum of the indexed data between l and u in
   // smin_out and smax_out.
-  float smin, smax;
-  float lmin, lmax;
+  double smin, smax;
+  double lmin, lmax;
   int i; 
 
   smin = the_data[ind[l]*dim+c];
@@ -330,7 +330,7 @@ void KDTree:: spread_in_coordinate(int c, int l, int u, interval& interv)
 
     if (lmin > lmax) {
       swap(lmin,lmax); 
-      //      float t = lmin;
+      //      double t = lmin;
       //      lmin = lmax;
       //      lmax = t;
     }
@@ -340,7 +340,7 @@ void KDTree:: spread_in_coordinate(int c, int l, int u, interval& interv)
   }
   // is there one more element? 
   if (i == u+1) {
-    float last = the_data[ind[u]*dim+c];
+    double last = the_data[ind[u]*dim+c];
     if (smin>last) smin = last;
     if (smax<last) smax = last;
   }
@@ -372,7 +372,7 @@ void KDTree::select_on_coordinate(int c, int k, int l, int u) {
   } // while loop
 }
 
-int KDTree::select_on_coordinate_value(int c, float alpha, int l, int u) {
+int KDTree::select_on_coordinate_value(int c, double alpha, int l, int u) {
   //
   //  Move indices in ind[l..u] so that the elements in [l .. return]
   //  are <= alpha, and hence are less than the [return+1..u]
@@ -433,16 +433,16 @@ int KDTree::select_on_coordinate_value(int c, float alpha, int l, int u) {
 
 
 
-static const float infinity = 1.0e38;
+static const double infinity = 1.0e38;
 
 
 
-void KDTree::n_nearest_brute_force(std::vector<float>& qv, int nn, KDTreeResultVector& result) {
+void KDTree::n_nearest_brute_force(std::vector<double>& qv, int nn, KDTreeResultVector& result) {
 
   result.clear();
 
   for (int i=0; i<N; i++) {
-    float dis = 0.0;
+    double dis = 0.0;
     KDTreeResult e; 
     for (int j=0; j<dim; j++) {
       dis += squared( the_data[i*dim+j] - qv[j], period[j]);
@@ -455,12 +455,12 @@ void KDTree::n_nearest_brute_force(std::vector<float>& qv, int nn, KDTreeResultV
 
 }
 
-void KDTree::r_nearest_brute_force(std::vector<float>& qv, float rr, KDTreeResultVector& result) {
+void KDTree::r_nearest_brute_force(std::vector<double>& qv, double rr, KDTreeResultVector& result) {
 
   result.clear();
 
   for (int i=0; i<N; i++) {
-    float dis = 0.0;
+    double dis = 0.0;
     for (int j=0; j<dim; j++) {
       dis += squared( the_data[i*dim+j] - qv[j], period[j]);
     }
@@ -476,9 +476,9 @@ void KDTree::r_nearest_brute_force(std::vector<float>& qv, float rr, KDTreeResul
 }
 
 
-void KDTree::n_nearest(std::vector<float>& qv, int nn, KDTreeResultVector& result) {
+void KDTree::n_nearest(std::vector<double>& qv, int nn, KDTreeResultVector& result) {
   SearchRecord sr(qv,*this,result);
-  std::vector<float> vdiff(dim,0.0); 
+  std::vector<double> vdiff(dim,0.0); 
 
   result.clear(); 
 
@@ -496,7 +496,7 @@ void KDTree::n_nearest(std::vector<float>& qv, int nn, KDTreeResultVector& resul
   
 void KDTree::n_nearest_around_point(int idxin, int correltime, int nn,
 				     KDTreeResultVector& result) {
-  std::vector<float> qv(dim);  //  query vector
+  std::vector<double> qv(dim);  //  query vector
 
   result.clear(); 
 
@@ -519,10 +519,10 @@ void KDTree::n_nearest_around_point(int idxin, int correltime, int nn,
 }
 
 
-void KDTree::r_nearest(std::vector<float>& qv, float r2, KDTreeResultVector& result) {
+void KDTree::r_nearest(std::vector<double>& qv, double r2, KDTreeResultVector& result) {
 // search for all within a ball of a certain radius
   SearchRecord sr(qv,*this,result);
-  std::vector<float> vdiff(dim,0.0); 
+  std::vector<double> vdiff(dim,0.0); 
 
   result.clear(); 
 
@@ -537,7 +537,7 @@ void KDTree::r_nearest(std::vector<float>& qv, float r2, KDTreeResultVector& res
   
 }
 
-int KDTree::r_count(std::vector<float>& qv, float r2) {
+int KDTree::r_count(std::vector<double>& qv, double r2) {
 // search for all within a ball of a certain radius
   {
     KDTreeResultVector result; 
@@ -559,9 +559,9 @@ int KDTree::r_count(std::vector<float>& qv, float r2) {
   
 }
 
-void KDTree::r_nearest_around_point(int idxin, int correltime, float r2,
+void KDTree::r_nearest_around_point(int idxin, int correltime, double r2,
 				     KDTreeResultVector& result) {
-  std::vector<float> qv(dim);  //  query vector
+  std::vector<double> qv(dim);  //  query vector
 
   result.clear(); 
 
@@ -585,9 +585,9 @@ void KDTree::r_nearest_around_point(int idxin, int correltime, float r2,
 }
 
 
-int KDTree::r_count_around_point(int idxin, int correltime, float r2) 
+int KDTree::r_count_around_point(int idxin, int correltime, double r2) 
 {
-  std::vector<float> qv(dim);  //  query vector
+  std::vector<double> qv(dim);  //  query vector
 
 
   for (int i=0; i<dim; i++) {
@@ -614,7 +614,7 @@ int KDTree::r_count_around_point(int idxin, int correltime, float r2)
   
 }
 
-SearchRecord::SearchRecord(std::vector<float>& qv_in, KDTree& tree_in,
+SearchRecord::SearchRecord(std::vector<double>& qv_in, KDTree& tree_in,
 	       KDTreeResultVector& result_in) :  
     qv(qv_in),
     result(result_in),
@@ -658,7 +658,7 @@ void KDTreeNode::print(){
     if(right!=NULL)right->print();
 }
 
-inline float dis_from_bnd(float x, float amin, float amax, float per) {
+inline double dis_from_bnd(double x, double amin, double amax, double per) {
   if(per<0.0){
     if (x > amax) {
       return(x-amax); 
@@ -670,8 +670,8 @@ inline float dis_from_bnd(float x, float amin, float amax, float per) {
       if(x>amin&&x<amax){
 	  return 0.0;
       }
-      float dx1=fabs(x-amax);
-      float dx2=fabs(x-amin);
+      double dx1=fabs(x-amax);
+      double dx2=fabs(x-amin);
       if(dx1>per/2.)dx1=per-dx1;
       if(dx2>per/2.)dx2=per-dx2;
       if(dx1<dx2)
@@ -731,8 +731,8 @@ int KDTreeNode::count(SearchRecord& sr) {
       if(sr.period[cut_dim]<0.0){
         KDTreeNode *ncloser, *nfarther;
  
-        float extra;
-        float qval = sr.qv[cut_dim]; 
+        double extra;
+        double qval = sr.qv[cut_dim]; 
         // value of the wall boundary on the cut dimension. 
         if (qval < cut_val) {
           ncloser = left;
@@ -768,11 +768,11 @@ int KDTreeNode::count(SearchRecord& sr) {
           }
         }else{
           KDTreeNode *ncloser, *nfarther;
-          float extra;
+          double extra;
             /// First get the distance from band
-            float qval = sr.qv[cut_dim]; 
-            float dl=dis_from_bnd(qval,left->box[cut_dim].lower,left->box[cut_dim].upper,sr.period[cut_dim]);
-            float dr=dis_from_bnd(qval,right->box[cut_dim].lower,right->box[cut_dim].upper,sr.period[cut_dim]);
+            double qval = sr.qv[cut_dim]; 
+            double dl=dis_from_bnd(qval,left->box[cut_dim].lower,left->box[cut_dim].upper,sr.period[cut_dim]);
+            double dr=dis_from_bnd(qval,right->box[cut_dim].lower,right->box[cut_dim].upper,sr.period[cut_dim]);
             if(fabs(dl)<fabs(dr)){
                 ncloser=left;
                 nfarther=right;
@@ -825,8 +825,8 @@ void KDTreeNode::search(SearchRecord& sr) {
     if(sr.period[cut_dim]<0.0){
       KDTreeNode *ncloser, *nfarther;
 
-      float extra;
-      float qval = sr.qv[cut_dim]; 
+      double extra;
+      double qval = sr.qv[cut_dim]; 
       // value of the wall boundary on the cut dimension. 
       if (qval < cut_val) {
         ncloser = left;
@@ -862,11 +862,11 @@ void KDTreeNode::search(SearchRecord& sr) {
         }
       }else{
         KDTreeNode *ncloser, *nfarther;
-	float extra;
+	double extra;
 	  /// First get the distance from band
-          float qval = sr.qv[cut_dim]; 
-	  float dl=dis_from_bnd(qval,left->box[cut_dim].lower,left->box[cut_dim].upper,sr.period[cut_dim]);
-	  float dr=dis_from_bnd(qval,right->box[cut_dim].lower,right->box[cut_dim].upper,sr.period[cut_dim]);
+          double qval = sr.qv[cut_dim]; 
+	  double dl=dis_from_bnd(qval,left->box[cut_dim].lower,left->box[cut_dim].upper,sr.period[cut_dim]);
+	  double dr=dis_from_bnd(qval,right->box[cut_dim].lower,right->box[cut_dim].upper,sr.period[cut_dim]);
 	  if(fabs(dl)<fabs(dr)){
 	      ncloser=left;
 	      nfarther=right;
@@ -898,8 +898,8 @@ inline bool KDTreeNode::box_in_search_range(SearchRecord& sr) {
   //
  
   int dim = sr.dim;
-  float dis2 =0.0; 
-  float ballsize = sr.ballsize; 
+  double dis2 =0.0; 
+  double ballsize = sr.ballsize; 
   for (int i=0; i<dim;i++) {
     dis2 += squared(dis_from_bnd(sr.qv[i],box[i].lower,box[i].upper,sr.period[i]),sr.period[i]);
     if (dis2 > ballsize)
@@ -914,7 +914,7 @@ void KDTreeNode::process_terminal_node(SearchRecord& sr) {
   int correltime = sr.correltime;
   unsigned int nn = sr.nn; 
   int dim        = sr.dim;
-  float ballsize = sr.ballsize;
+  double ballsize = sr.ballsize;
   //
   bool rearrange = sr.rearrange; 
   const KDTreeArray& data = *sr.data;
@@ -933,7 +933,7 @@ void KDTreeNode::process_terminal_node(SearchRecord& sr) {
 
   for (int i=l; i<=u;i++) {
     int indexofi;  // sr.ind[i]; 
-    float dis;
+    double dis;
     bool early_exit; 
 
     if (rearrange) {
@@ -1016,7 +1016,7 @@ void KDTreeNode::process_terminal_node_fixedball(SearchRecord& sr) {
   int centeridx  = sr.centeridx;
   int correltime = sr.correltime;
   int dim        = sr.dim;
-  float ballsize = sr.ballsize;
+  double ballsize = sr.ballsize;
   //
   bool rearrange = sr.rearrange; 
   const KDTreeArray& data = *sr.data;
@@ -1024,7 +1024,7 @@ void KDTreeNode::process_terminal_node_fixedball(SearchRecord& sr) {
 
   for (int i=l; i<=u;i++) {
     int indexofi = sr.ind[i]; 
-    float dis;
+    double dis;
     bool early_exit; 
 
     if (rearrange) {
@@ -1081,7 +1081,7 @@ int KDTreeNode::process_terminal_node_fixedball_count(SearchRecord& sr) {
   int centeridx  = sr.centeridx;
   int correltime = sr.correltime;
   int dim        = sr.dim;
-  float ballsize = sr.ballsize;
+  double ballsize = sr.ballsize;
   bool rearrange = sr.rearrange; 
   const KDTreeArray& data = *sr.data;
   int count=0;
@@ -1089,7 +1089,7 @@ int KDTreeNode::process_terminal_node_fixedball_count(SearchRecord& sr) {
 
   for (int i=l; i<=u;i++) {
     int indexofi = sr.ind[i]; 
-    float dis;
+    double dis;
     bool early_exit; 
 
     if (rearrange) {

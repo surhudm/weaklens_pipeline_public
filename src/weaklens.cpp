@@ -38,7 +38,7 @@ weaklens::weaklens()
 
 }
 
-weaklens::weaklens(float xrmin, float xrmax, int xrbins, char *xoutfile, bool xverbose)
+weaklens::weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool xverbose)
 {
     rmin=xrmin;
     rmax=xrmax;
@@ -132,16 +132,16 @@ weaklens::~weaklens(){
 int weaklens::allocate_lens_memory(int xNcen)
 {
     Ncen = xNcen;
-    ra      =(float *)  calloc(Ncen,sizeof(float));
-    dec     =(float *)  calloc(Ncen,sizeof(float));
-    zred    =(float *)  calloc(Ncen,sizeof(float));
-    wt      =(float *)  calloc(Ncen,sizeof(float));
-    datacen =(float *)  calloc(Ncen*3,sizeof(float));
-    c_lra   =(float *)  calloc(Ncen,sizeof(float));
-    s_lra   =(float *)  calloc(Ncen,sizeof(float));
-    s_ldec  =(float *)  calloc(Ncen,sizeof(float));
-    c_ldec  =(float *)  calloc(Ncen,sizeof(float));
-    Dcom    =(float *)  calloc(Ncen,sizeof(float));
+    ra      =(double *)  calloc(Ncen,sizeof(double));
+    dec     =(double *)  calloc(Ncen,sizeof(double));
+    zred    =(double *)  calloc(Ncen,sizeof(double));
+    wt      =(double *)  calloc(Ncen,sizeof(double));
+    datacen =(double *)  calloc(Ncen*3,sizeof(double));
+    c_lra   =(double *)  calloc(Ncen,sizeof(double));
+    s_lra   =(double *)  calloc(Ncen,sizeof(double));
+    s_ldec  =(double *)  calloc(Ncen,sizeof(double));
+    c_ldec  =(double *)  calloc(Ncen,sizeof(double));
+    Dcom    =(double *)  calloc(Ncen,sizeof(double));
     Nfill=0;
     lenses_alloc=true;
     if (verbose){
@@ -150,7 +150,7 @@ int weaklens::allocate_lens_memory(int xNcen)
     return 0;
 }
 
-int weaklens::process_lens(float xra, float xdec, float xzred, float xwt)
+int weaklens::process_lens(double xra, double xdec, double xzred, double xwt)
 {
     if (Nfill==Ncen){
         fprintf(stderr, "Lens arrays were not allocated correctly, please call allocate_lens_memory once again with the correct number of lenses\n");
@@ -187,16 +187,16 @@ int weaklens::finalize_lenses()
     Dcommin = cosmo->Dcofz(zredmin);
     if (Ncen>Nfill){
         Ncen=Nfill;
-        ra      =(float *)  realloc(ra     , Ncen*sizeof(float));
-        dec     =(float *)  realloc(dec    , Ncen*sizeof(float));
-        zred    =(float *)  realloc(zred   , Ncen*sizeof(float));
-        wt      =(float *)  realloc(wt     , Ncen*sizeof(float));
-        datacen =(float *)  realloc(datacen, Ncen*3*sizeof(float));
-        c_lra   =(float *)  realloc(c_lra  , Ncen*sizeof(float));
-        s_lra   =(float *)  realloc(s_lra  , Ncen*sizeof(float));
-        s_ldec  =(float *)  realloc(s_ldec , Ncen*sizeof(float));
-        c_ldec  =(float *)  realloc(c_ldec , Ncen*sizeof(float));
-        Dcom    =(float *)  realloc(Dcom   , Ncen*sizeof(float));
+        ra      =(double *)  realloc(ra     , Ncen*sizeof(double));
+        dec     =(double *)  realloc(dec    , Ncen*sizeof(double));
+        zred    =(double *)  realloc(zred   , Ncen*sizeof(double));
+        wt      =(double *)  realloc(wt     , Ncen*sizeof(double));
+        datacen =(double *)  realloc(datacen, Ncen*3*sizeof(double));
+        c_lra   =(double *)  realloc(c_lra  , Ncen*sizeof(double));
+        s_lra   =(double *)  realloc(s_lra  , Ncen*sizeof(double));
+        s_ldec  =(double *)  realloc(s_ldec , Ncen*sizeof(double));
+        c_ldec  =(double *)  realloc(c_ldec , Ncen*sizeof(double));
+        Dcom    =(double *)  realloc(Dcom   , Ncen*sizeof(double));
     }
 
     sumwl = 0.0;
@@ -231,7 +231,7 @@ int weaklens::finalize_lenses()
 int weaklens::test_searchrecord(){
 }
 
-int weaklens::process_source(float sra, float sdec, float se1, float se2, float swt, float smcat, float sc1_dp, float sc2_dp, float sc1_nb, float sc2_nb, float szbest, bool usepdf=false)
+int weaklens::process_source(double sra, double sdec, double se1, double se2, double swt, double smcat, double sc1_dp, double sc2_dp, double sc1_nb, double sc2_nb, double szbest, bool usepdf=false)
 {
 
     if(std::isnan(sra) || std::isnan(sdec) || std::isnan(se1) || std::isnan(se2) || std::isnan(swt) || std::isnan(smcat) || std::isnan(sc1_dp) || std::isnan(sc2_dp) || std::isnan(sc1_nb) || std::isnan(sc2_nb) || std::isnan(szbest)){
@@ -261,11 +261,11 @@ int weaklens::process_source(float sra, float sdec, float se1, float se2, float 
 
     // Ok now get results
     kdtree2::KDTreeResultVector res;
-    std::vector<float> qv(3);
+    std::vector<double> qv(3);
     qv[0]=sx;
     qv[1]=sy;
     qv[2]=sz;
-    float dis2 = pow(rmax/Dcommin, 2.);
+    double dis2 = pow(rmax/Dcommin, 2.);
     tree->r_nearest(qv, dis2, res);
     //0 0.034433 0.260000 435.623138 0.150020
     if (verbose)
@@ -274,8 +274,8 @@ int weaklens::process_source(float sra, float sdec, float se1, float se2, float 
 
     for(int k=0;k<res.size();k++){
         int xx = res.at(k).idx;
-        float dis2=sqrt(res.at(k).dis);
-        float logrp = log10(dis2*Dcom[xx]);
+        double dis2=sqrt(res.at(k).dis);
+        double logrp = log10(dis2*Dcom[xx]);
 
         if ((!usepdf) && szbest<=zred[xx]) continue;
 
@@ -348,9 +348,9 @@ int weaklens::finalize_results(){
 
     for (int i=0;i<rbins;i++)
     {
-        float rr = logrmin + (i+0.5)*logrdiff;
-        float rrmin = pow(10., logrmin + i*logrdiff);
-        float rrmax = pow(10., logrmin + (i+1)*logrdiff);
+        double rr = logrmin + (i+0.5)*logrdiff;
+        double rrmin = pow(10., logrmin + i*logrdiff);
+        double rrmax = pow(10., logrmin + (i+1)*logrdiff);
         fprintf(fout, "%e %le %le %le %le %le %e %le %le %le \n", rr, sumdsig_num[i], sumwls[i], sumwls_ms[i], sumdsig_num[i]/sumwls_ms[i], sumwls[i]/sumwl, rrmin/2+rrmax/2, sumdcross_num[i]/sumwls_ms[i], sumdcount_num[i]/sumwl, sumdcount_num[i]);
     }
     fclose(fout);

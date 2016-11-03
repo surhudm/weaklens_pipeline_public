@@ -14,7 +14,7 @@
 #include <cstring>
 #include <cmath>
 #include <boost/multi_array.hpp>
-typedef boost::multi_array<float,1> array1dfloat;
+typedef boost::multi_array<double,1> array1ddouble;
 #include <boost/timer.hpp>
 
 class tomography;
@@ -24,23 +24,23 @@ class tomography
     protected:
         cosmology *cosmo;
         bool verbose;
-        float rmin;
-        float rmax;
-        float logrmin;
-        float logrmax;
-        float logrdiff;
+        double rmin;
+        double rmax;
+        double logrmin;
+        double logrmax;
+        double logrdiff;
         int rbins;
-        float *ra, *dec, *zred, *lam, *wt, *datacen, *c_lra, *s_lra, *c_ldec, *s_ldec, *Dcom;
-        float zsrcmin, zsrcmax;
+        double *ra, *dec, *zred, *lam, *wt, *datacen, *c_lra, *s_lra, *c_ldec, *s_ldec, *Dcom;
+        double zsrcmin, zsrcmax;
         int Ncen, Nfill;
-        float zredmin, zredmax, Dcommin;
+        double zredmin, zredmax, Dcommin;
         double *sumdgammat_num, *sumdgammacross_num, *sumdcount_num, *sumwls, *sumwls_ms;
         double sumwl, pofzinbin;
         char outfile[1000];
         boost::timer *timer;
         long int Niter;
         bool lenses_alloc, lenses_finalized;
-        array1dfloat xper;
+        array1ddouble xper;
         int dim;
 
         // The spline for inverse sigmacritical
@@ -54,12 +54,12 @@ class tomography
     public:
         kdtree2::KDTree *tree;
         tomography();
-        tomography(float xrmin, float xrmax, int xrbins, float xzsrcmin, float xzsrcmax, char *xoutfile, bool xverbose);
+        tomography(double xrmin, double xrmax, int xrbins, double xzsrcmin, double xzsrcmax, char *xoutfile, bool xverbose);
         ~tomography();
         int allocate_lens_memory(int xNcen);
-        int process_lens(float xra, float xdec, float xzred, float xwt);
+        int process_lens(double xra, double xdec, double xzred, double xwt);
         int finalize_lenses();
-        int process_source(float sra, float sdec, float se1, float se2, float swt, float smcat, float sc1_dp, float sc2_dp, float sc1_nb, float sc2_nb, float szbest, bool usepdf);
+        int process_source(double sra, double sdec, double se1, double se2, double swt, double smcat, double sc1_dp, double sc2_dp, double sc1_nb, double sc2_nb, double szbest, bool usepdf);
         int setup_pofz(double pofz_zmin, double pofz_zdiff, int xNpz);
         int process_pofz(double *pofz, int zbins);
         int finalize_results();
