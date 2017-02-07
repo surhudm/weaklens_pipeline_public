@@ -26,4 +26,5 @@ source:
     pofz_zdiff: 0.01
     pofz_zbins: 601
     include_corrections: False
-    
+
+outputdir: camira

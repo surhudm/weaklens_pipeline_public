@@ -6,6 +6,123 @@ import fitsio
 import glob
 
 def lens_select(lensargs):
+    if lensargs['type'] == "dr12-lowz":
+        hdulist = pyfits.open("DataStore/DR12/galaxy_DR12v5_LOWZ_North.fits.gz")
+        data = hdulist[1].data
+        ra_n = data["ra"]
+        dec_n = data["dec"]
+        zred_n = data["z"].astype('float64')
+        wt_n = data["weight_systot"].astype("float64")
+        idx = (zred_n>lensargs["zmin"]) & (zred_n<=lensargs["zmax"])
+        ra_n = ra_n[idx]
+        dec_n = dec_n[idx]
+        zred_n = zred_n[idx]
+        wt_n = wt_n[idx]
+
+        hdulist = pyfits.open("DataStore/DR12/galaxy_DR12v5_LOWZ_South.fits.gz")
+        data = hdulist[1].data
+        ra_s = data["ra"]
+        dec_s = data["dec"]
+        zred_s = data["z"].astype('float64')
+        wt_s = data["weight_systot"].astype("float64")
+        idx = (zred_s>lensargs["zmin"]) & (zred_s<=lensargs["zmax"])
+        ra_s = ra_s[idx]
+        dec_s = dec_s[idx]
+        zred_s = zred_s[idx]
+        wt_s = wt_s[idx]
+
+        ra = np.append(ra_n, ra_s)
+        dec = np.append(dec_n, dec_s)
+        zred = np.append(zred_n, zred_s)
+        wt = np.append(wt_n, wt_s)
+        
+        sys.stdout.write("Selecting %d lenses \n" % (ra.size))
+        return ra, dec, zred, wt
+
+    if lensargs['type'] == "dr12-cmass":
+        hdulist = pyfits.open("DataStore/DR12/galaxy_DR12v5_CMASS_North.fits.gz")
+        data = hdulist[1].data
+        ra_n = data["ra"]
+        dec_n = data["dec"]
+        zred_n = data["z"].astype('float64')
+        wt_n = data["weight_systot"].astype("float64")
+        idx = (zred_n>lensargs["zmin"]) & (zred_n<=lensargs["zmax"])
+        ra_n = ra_n[idx]
+        dec_n = dec_n[idx]
+        zred_n = zred_n[idx]
+        wt_n = wt_n[idx]
+
+        hdulist = pyfits.open("DataStore/DR12/galaxy_DR12v5_CMASS_South.fits.gz")
+        data = hdulist[1].data
+        ra_s = data["ra"]
+        dec_s = data["dec"]
+        zred_s = data["z"].astype('float64')
+        wt_s = data["weight_systot"].astype("float64")
+        idx = (zred_s>lensargs["zmin"]) & (zred_s<=lensargs["zmax"])
+        ra_s = ra_s[idx]
+        dec_s = dec_s[idx]
+        zred_s = zred_s[idx]
+        wt_s = wt_s[idx]
+
+        ra = np.append(ra_n, ra_s)
+        dec = np.append(dec_n, dec_s)
+        zred = np.append(zred_n, zred_s)
+        wt = np.append(wt_n, wt_s)
+        
+        sys.stdout.write("Selecting %d lenses \n" % (ra.size))
+        return ra, dec, zred, wt
+
+    if lensargs['type'] == "alexie-test":
+        ra, dec, zred, wt = np.loadtxt("DataStore/alexie-test/bossdr12_GAMA15_zbin1.txt", unpack=1)
+        wt = ra/ra
+        
+        idx = (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"])
+        ra = ra[idx]
+        dec = dec[idx]
+        zred = zred[idx]
+        wt = wt[idx]
+        sys.stdout.write("Selecting %d lenses \n" % (np.sum(idx)))
+        #return ra[idx], dec[idx], zred[idx], wt[idx]
+        return ra, dec, zred, wt
+
+    if lensargs['type'] == "redmapper-smallR":
+        hdulist = pyfits.open("DataStore/redmapper-smallR/dr8_run_redmapper_v5.10-0.75_lgt5_prunedcatalog.fit")
+        data = hdulist[1].data
+        ra = data["ra"]
+        dec = data["dec"]
+        zred = data["z_lambda"].astype('float64')
+        lamda = data["lambda_chisq"]
+        wt = ra/ra
+        
+        idx = (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"]) & (lamda>lensargs["lammin"]) & (lamda<=lensargs["lammax"])
+        ra = ra[idx]
+        dec = dec[idx]
+        zred = zred[idx]
+        lamda = lamda[idx]
+        wt = wt[idx]
+        sys.stdout.write("Selecting %d lenses \n" % (np.sum(idx)))
+        #return ra[idx], dec[idx], zred[idx], wt[idx]
+        return ra, dec, zred, wt
+
+    if lensargs['type'] == "redmapper-largeR":
+        hdulist = pyfits.open("DataStore/redmapper-largeR/dr8_run_redmapper_v5.10-1.25_lgt5_prunedcatalog.fit")
+        data = hdulist[1].data
+        ra = data["ra"]
+        dec = data["dec"]
+        zred = data["z_lambda"].astype('float64')
+        lamda = data["lambda_chisq"]
+        wt = ra/ra
+        
+        idx = (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"]) & (lamda>lensargs["lammin"]) & (lamda<=lensargs["lammax"])
+        ra = ra[idx]
+        dec = dec[idx]
+        zred = zred[idx]
+        lamda = lamda[idx]
+        wt = wt[idx]
+        sys.stdout.write("Selecting %d lenses \n" % (np.sum(idx)))
+        #return ra[idx], dec[idx], zred[idx], wt[idx]
+        return ra, dec, zred, wt
+
     if lensargs['type'] == "redmapper":
         hdulist = pyfits.open("DataStore/redmapper/redmapper_dr8_public_v5.10_catalog.fits")
         data = hdulist[1].data
@@ -126,6 +243,25 @@ def source_select(sourceargs, chunksize):
         sourceargs['iter'] = sourceargs['iter'] + 1
         Ngal = np.shape(datagal)[0]
         status = 0
+
+    if sourceargs['type'] == "alexie-test" and sourceargs['filetype'] == "ascii" and  not sourceargs["fullpofz"]:
+
+        itern = sourceargs['iter']
+        if itern == 0:
+            sourceargs['dfchunks'] = pandas.read_csv("DataStore/alexie-test/GAMA15H_sources_test_original2.cat", names=(['ra','dec','z_b','jk','e1','e2','weight']), chunksize=chunksize, delim_whitespace=1)
+        try:
+            datagal = sourceargs['dfchunks'].next()
+        except:
+            status = 1
+            return 0.0, sourceargs, 0.0, status, 0, 0, 0
+
+        sourceargs['iter'] = sourceargs['iter'] + 1
+        Ngal = datagal.ra.size
+        status = 0
+
+        pofz = datagal.z_b.values
+        datagalflag = (datagal.ra.values==datagal.ra.values)
+        pofzflag = (datagal.ra.values==datagal.ra.values)
 
     if sourceargs['type'] == "hsc-wide" and sourceargs['filetype'] == "fits" and  not sourceargs["fullpofz"]:
 

@@ -13,6 +13,8 @@ weaklens::weaklens()
 
     sumdsig_num = (double *)calloc(rbins,sizeof(double));
     sumdcross_num = (double *)calloc(rbins,sizeof(double));
+    sumdsigsq_num = (double *)calloc(rbins,sizeof(double));
+    sumdcrosssq_num = (double *)calloc(rbins,sizeof(double));
     sumdcount_num = (double *)calloc(rbins,sizeof(double));
     sumwls = (double *)calloc(rbins,sizeof(double));
     sumwls_ms  =(double *)calloc(rbins,sizeof(double));
@@ -50,6 +52,8 @@ weaklens::weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool 
 
     sumdsig_num = (double *)calloc(rbins,sizeof(double));
     sumdcross_num = (double *)calloc(rbins,sizeof(double));
+    sumdsigsq_num = (double *)calloc(rbins,sizeof(double));
+    sumdcrosssq_num = (double *)calloc(rbins,sizeof(double));
     sumdcount_num = (double *)calloc(rbins,sizeof(double));
     sumwls = (double *)calloc(rbins,sizeof(double));
     sumwls_ms  =(double *)calloc(rbins,sizeof(double));
@@ -59,7 +63,8 @@ weaklens::weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool 
     // ========================================================
     // Initialize cosmology
     // ========================================================
-    cosmo = new cosmology(0.27,0.0,-1.0,0.0,0.0476,0.7,2.726,0.8,0.96,log10(8.0),1.0);
+    //cosmo = new cosmology(0.27,0.0,-1.0,0.0,0.0476,0.7,2.726,0.8,0.96,log10(8.0),1.0);
+    cosmo = new cosmology(0.31,0.0,-1.0,0.0,0.0476,0.7,2.726,0.8,0.96,log10(8.0),1.0);
     lenses_alloc=false;
     lenses_finalized=false;
     zredmin=1.E30;
@@ -77,7 +82,9 @@ weaklens::weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool 
 
 weaklens::~weaklens(){
     free(sumdsig_num);
+    free(sumdsigsq_num);
     free(sumdcross_num);
+    free(sumdcrosssq_num);
     free(sumdcount_num);
     free(sumwls);
     free(sumwls_ms);
@@ -125,6 +132,7 @@ weaklens::~weaklens(){
         delete [] pz_xz;
         delete [] pz_chiz;
         delete [] pz_fac;
+        delete [] pz_pofz;
         pz_alloc = false;
     }
 }
@@ -319,7 +327,9 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
              continue;
 
         sumdsig_num[rpbin]+=(etan*wls_by_av_sigc_inv);
+        sumdsigsq_num[rpbin]+=pow(etan*wls_by_av_sigc_inv, 2);
         sumdcross_num[rpbin]+=(ecross*wls_by_av_sigc_inv);
+        sumdcrosssq_num[rpbin]+=pow(ecross*wls_by_av_sigc_inv, 2);
         sumdcount_num[rpbin]+=(wt[xx]);
         sumwls[rpbin]+=wls;
         sumwls_ms[rpbin]+=(wls*(1+smcat));
@@ -351,10 +361,46 @@ int weaklens::finalize_results(){
         double rr = logrmin + (i+0.5)*logrdiff;
         double rrmin = pow(10., logrmin + i*logrdiff);
         double rrmax = pow(10., logrmin + (i+1)*logrdiff);
-        fprintf(fout, "%e %le %le %le %le %le %e %le %le %le \n", rr, sumdsig_num[i], sumwls[i], sumwls_ms[i], sumdsig_num[i]/sumwls_ms[i], sumwls[i]/sumwl, rrmin/2+rrmax/2, sumdcross_num[i]/sumwls_ms[i], sumdcount_num[i]/sumwl, sumdcount_num[i]);
+        fprintf(fout, "%e %le %le %le %le %le %e %le %le %le %le %le \n", rr, sumdsig_num[i], sumwls[i], sumwls_ms[i], sumdsig_num[i]/sumwls_ms[i], sumwls[i]/sumwl, rrmin/2+rrmax/2, sumdcross_num[i]/sumwls_ms[i], sumdcount_num[i]/sumwl, sumdcount_num[i], sqrt(sumdsigsq_num[i])/sumwls_ms[i], sqrt(sumdcrosssq_num[i])/sumwls_ms[i]);
     }
     fclose(fout);
     return 0;
+}
+
+int weaklens::finalize_pofz(){
+    FILE *fout=fopen(outfile, "w");
+
+    for (int i=0;i<Npz;i++)
+    {
+        fprintf(fout, "%le %le \n", pz_xz[i], pz_pofz[i]/Nphotgal);
+    }
+    fclose(fout);
+    return 0;
+}
+
+int weaklens::add_pofz(double *pofz, int zbins)
+{
+    int status=0;
+    for(int k=0;k<Npz;k++){
+        if (std::isnan(pofz[k])){
+	    status = 1;
+	}else{
+	    pz_pofz[k] += pofz[k];
+        }
+    }
+    if (status==1){
+        for(int k=0;k<Npz;k++){
+            if (std::isnan(pofz[k])){
+                status = 1;
+            }else{
+                pz_pofz[k] -= pofz[k];
+            }
+        }
+    }else{
+        Nphotgal++;
+    }
+
+    return status;
 }
 
 int weaklens::process_pofz(double *pofz, int zbins)
@@ -444,6 +490,8 @@ int weaklens::setup_pofz(double pofz_zmin, double pofz_zdiff, int xNpz)
     pz_xz = new double [Npz];
     pz_chiz = new double [Npz];
     pz_fac = new double [Npz];
+    pz_pofz = new double [Npz];
+    Nphotgal = 0.0;
     
     for(int kk=0;kk<Npz;kk++){
         pz_xz[kk]=pofz_zmin+kk*pofz_zdiff;

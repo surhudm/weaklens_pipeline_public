@@ -13,10 +13,9 @@ from weaklens_select import lens_select, source_select
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("--config", help="Configuration file")
-parser.add_argument("--rmax", help="Max radius", type=float, default=50.0)
-parser.add_argument("--rmin", help="Min radius", type=float, default=0.5)
+parser.add_argument("--rmax", help="Max radius", type=float, default=20.0)
+parser.add_argument("--rmin", help="Min radius", type=float, default=0.1)
 parser.add_argument("--rbin", help="Radial bin", type=int, default=20)
-parser.add_argument("--pairout", help="Output filename with pairs information", default="debug_pairs.dat")
 
 args = parser.parse_args()
 
@@ -29,7 +28,11 @@ print args
 rmax = (args.rmax)
 rmin = (args.rmin)
 rbin = args.rbin
-pairout = args.pairout
+pairout = config["outputdir"] + "/pairs.dat"
+
+from subprocess import call
+call("mkdir -p %s" % (config["outputdir"]), shell=1)
+call("cp %s %s/" % (ymlfile, config["outputdir"]), shell=1)
 
 wpipe = weaklens.weaklens(rmin, rmax, rbin, pairout, False)
 
@@ -102,6 +105,11 @@ while not done:
                 zphotgal = 0.0*ragal
                 #print ragal, decgal, e1gal, e2gal, wgal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal
 
+        elif sourceargs['filetype'] == "ascii" and sourceargs['type'] == "alexie-test":
+            ragal, decgal, zphotgal, e1gal, e2gal, wgal = datagal.ra.values[i], datagal.dec.values[i], datagal.z_b.values[i],datagal.e1.values[i],datagal.e2.values[i],datagal.weight.values[i]
+            e2gal = -e2gal
+            mgal, c1_dp, c2_dp, c1_nb, c2_nb = ragal*0.0, ragal*0.0, ragal*0.0, ragal*0.0, ragal*0.0
+            
         elif sourceargs['filetype'] == "ascii":
             ragal, decgal, e1gal, e2gal, wgal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal = datagal.ra.values[i], datagal.dec.values[i], datagal.e1.values[i],datagal.e2.values[i],datagal.weight.values[i],datagal.m.values[i],datagal.c1_dp.values[i],datagal.c2_dp.values[i],datagal.c1_nb.values[i],datagal.c2_nb.values[i],datagal.z_b.values[i]
 

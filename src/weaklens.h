@@ -33,7 +33,7 @@ class weaklens
         double *ra, *dec, *zred, *lam, *wt, *datacen, *c_lra, *s_lra, *c_ldec, *s_ldec, *Dcom;
         int Ncen, Nfill;
         double zredmin, zredmax, Dcommin;
-        double *sumdsig_num, *sumdcross_num, *sumdcount_num, *sumwls, *sumwls_ms;
+        double *sumdsig_num, *sumdcross_num, *sumdcount_num, *sumwls, *sumwls_ms, *sumdsigsq_num, *sumdcrosssq_num;
         double sumwl;
         char outfile[1000];
         boost::timer *timer;
@@ -47,7 +47,8 @@ class weaklens
         gsl_interp_accel *sigcritinv_acc;
         gsl_spline *sigcritinv_spline;
         int Npz;
-        double *pz_xz, *pz_chiz, *pz_fac;
+        double *pz_xz, *pz_chiz, *pz_fac, *pz_pofz;
+        double Nphotgal;
         bool pz_alloc;
 
         double gee;
@@ -64,8 +65,10 @@ class weaklens
         int process_source(double sra, double sdec, double se1, double se2, double swt, double smcat, double sc1_dp, double sc2_dp, double sc1_nb, double sc2_nb, double szbest, bool usepdf);
         int setup_pofz(double pofz_zmin, double pofz_zdiff, int xNpz);
         int process_pofz(double *pofz, int zbins);
+        int add_pofz(double *pofz, int zbins);
         double sigmacritinverse(double zlens);
         int finalize_results();
+        int finalize_pofz();
         int test_searchrecord();
 };
 
