@@ -64,6 +64,7 @@ class weaklens
         int finalize_lenses();
         int process_source(double sra, double sdec, double se1, double se2, double swt, double smcat, double sc1_dp, double sc2_dp, double sc1_nb, double sc2_nb, double szbest, bool usepdf);
         int setup_pofz(double pofz_zmin, double pofz_zdiff, int xNpz);
+        int setup_pofz_array(double *pofz_zz, int xNpz);
         int process_pofz(double *pofz, int zbins);
         int add_pofz(double *pofz, int zbins);
         double sigmacritinverse(double zlens);

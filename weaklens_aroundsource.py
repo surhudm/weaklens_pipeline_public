@@ -9,7 +9,7 @@ import pyfits
 import fitsio
 import argparse
 import yaml
-from weaklens_select import lens_select, source_select
+from weaklens_select import lens_select, source_select, get_pofz_array
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("--config", help="Configuration file")
@@ -54,7 +54,14 @@ sourceargs["iter"] = 0
 
 if sourceargs["fullpofz"]:
     print "Setting up P(z)"
-    wpipe.setup_pofz(sourceargs["pofz_zmin"], sourceargs["pofz_zdiff"], sourceargs["pofz_zbins"])
+####wpipe.setup_pofz(sourceargs["pofz_zmin"], sourceargs["pofz_zdiff"], sourceargs["pofz_zbins"])
+    pofz_zz = get_pofz_array(sourceargs).astype("float32")
+    wpipe.setup_pofz_array(pofz_zz)
+    ## print pofz_zz.size
+    ## pofz_zz_arr = wpipe.doubleArray(pofz_zz.size)
+    ## for i in range(pofz_zz.size):
+    ##     print i, pofz_zz[i]
+    ##     pofz_zz_arr[i] = pofz_zz[i]
 
 #### try:
 ####     fout = open("Test_%s" % sourceargs["pofz_type"], "w")
@@ -69,8 +76,8 @@ while not done:
     if status!=0 :
         break
 
-    #if itern==10:
-    #    break
+    # if itern==2:
+    #     break
 
     # For every source, query the clusters around it
     try:
@@ -88,6 +95,9 @@ while not done:
             if sourceargs['include_corrections']:
                 ragal, decgal, e1gal, e2gal, wgal, mgal, c1_dp, c2_dp, c1_nb, c2_nb = datagal[i]
                 zphotgal = 0.0
+                e2gal = -e2gal
+                c2_dp = -c2_dp
+                c2_nb = -c2_nb
             else:
                 ragal, decgal, e1gal, e2gal, wgal = datagal[i]
                 if sourceargs['type'] != "hsc-wide-josh":

@@ -3,6 +3,7 @@
 %include cpointer.i
 %pointer_class(double,dp)
 %apply double& INOUT { double& a };
+
 %feature("autodoc", 1);
 %{
     #define SWIG_FILE_WITH_INIT
@@ -14,5 +15,6 @@ import_array();
 %}
 %apply (float* IN_ARRAY1, int DIM1) {(float* pofz, int zbins)};
 %apply (double* IN_ARRAY1, int DIM1) {(double* pofz, int zbins)};
+%apply (double* IN_ARRAY1, int DIM1) {(double* pofz_zz, int xNpz)};
 
 %include "weaklens.h"

@@ -297,8 +297,8 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
             av_sigc_inv = sigc_inv_fac*Dcom[xx]*(dCofzs-Dcom[xx])*(1+zred[xx]);
         }else{
             av_sigc_inv = sigmacritinverse(zred[xx]);
-        }
         //fprintf(stderr, "zred:%f zbest:%f avsigcinv:%le\n", zred[xx], szbest, av_sigc_inv);
+        }
 
 
         /// Check thoroughly here
@@ -381,22 +381,18 @@ int weaklens::finalize_pofz(){
 int weaklens::add_pofz(double *pofz, int zbins)
 {
     int status=0;
+    double sum;
     for(int k=0;k<Npz;k++){
-        if (std::isnan(pofz[k])){
+        if (std::isnan(pofz[k]) || pofz[k]<0 || pofz[k]>1.e5 || pofz[k]<-1.E5){
 	    status = 1;
-	}else{
+	}
+        sum += pofz[k];
+    }
+    if (sum>1.01) status=1;
+    if (status==0){
+        for(int k=0;k<Npz;k++){
 	    pz_pofz[k] += pofz[k];
         }
-    }
-    if (status==1){
-        for(int k=0;k<Npz;k++){
-            if (std::isnan(pofz[k])){
-                status = 1;
-            }else{
-                pz_pofz[k] -= pofz[k];
-            }
-        }
-    }else{
         Nphotgal++;
     }
 
@@ -434,7 +430,9 @@ int weaklens::process_pofz(double *pofz, int zbins)
             if(xx[i]>pz_xz[k]) continue;
             double fac=pz_fac[k]*chi*(pz_chiz[k]-chi)*(1+xx[i]);
             av_sigc_inv_num+=pofz[k]*fac;
+            //fprintf(stderr, "%.3f %.3f %.3f %.3f\n", pz_fac[k], chi, pz_chiz[k], xx[i]);
         }
+        //exit(11);
 
         if (av_sigc_inv_den==0.0 || std::isnan(av_sigc_inv_den) || std::isnan(av_sigc_inv_num)){
             yy[i] = 0.0;
@@ -499,6 +497,27 @@ int weaklens::setup_pofz(double pofz_zmin, double pofz_zdiff, int xNpz)
         pz_fac[kk]=1.e12*4.*M_PI*gee/(cee*cee)/(pz_chiz[kk]);
     }
     pz_alloc=true;
+
+    return 1;
+}
+
+int weaklens::setup_pofz_array(double *pofz_zz, int xNpz)
+{
+    Npz = xNpz;
+    pz_xz = new double [Npz];
+    pz_chiz = new double [Npz];
+    pz_fac = new double [Npz];
+    pz_pofz = new double [Npz];
+    Nphotgal = 0.0;
+    
+    for(int kk=0;kk<Npz;kk++){
+        pz_xz[kk]=pofz_zz[kk];
+        pz_chiz[kk]=cosmo->Dcofz(pz_xz[kk]);
+        pz_fac[kk]=1.e12*4.*M_PI*gee/(cee*cee)/(pz_chiz[kk]);
+        //fprintf(stderr, " %.3lf %.3lf \n", pofz_zz[kk], cosmo->Dcofz(pz_xz[kk]));
+    }
+    pz_alloc=true;
+    //exit(11);
 
     return 1;
 }

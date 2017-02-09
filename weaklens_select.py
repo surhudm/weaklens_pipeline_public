@@ -180,6 +180,106 @@ def lens_select(lensargs):
 
 def source_select(sourceargs, chunksize):
 
+    if sourceargs['type'] == "hsc-wide-s16a_v2.0" and sourceargs['filetype'] == "fits" and not sourceargs["fullpofz"]:
+
+        itern = sourceargs['iter']
+        if itern == 0:
+            sourceargs['fits_list'] = glob.glob("DataStore/S16A_v2.0/*_tracts/*_pz.fits")
+            
+        if itern == len(sourceargs['fits_list']):
+            status = 1
+
+        datagal = 0
+        status = not (itern<len(sourceargs['fits_list']))
+        Ngal = 0
+        pofz = 0
+        if status:
+            return datagal, sourceargs, Ngal, status, pofz, 0., 0.
+
+        hdulist = pyfits.open(sourceargs['fits_list'][itern].split("_pz")[0] + ".fits")
+        data = hdulist[1].data
+        ira = data["ira"]
+        idec = data["idec"]
+
+        ishape_hsm_regauss_e1 = data["ishape_hsm_regauss_e1"]
+        ishape_hsm_regauss_e2 = data["ishape_hsm_regauss_e2"]
+        ishape_hsm_regauss_derived_bias_c1 = data["ishape_hsm_regauss_derived_bias_c1"]
+        ishape_hsm_regauss_derived_bias_c2 = data["ishape_hsm_regauss_derived_bias_c2"]
+        ishape_hsm_regauss_derived_bias_m = data["ishape_hsm_regauss_derived_bias_m"]
+        ishape_hsm_regauss_derived_weight = data["ishape_hsm_regauss_derived_weight"] 
+        zeroarr = ishape_hsm_regauss_derived_bias_c1 * 0.0
+        datagalflag = data["weak_lensing_flag"]
+
+        datagal = np.array([ira, idec, ishape_hsm_regauss_e1, ishape_hsm_regauss_e2, ishape_hsm_regauss_derived_weight, ishape_hsm_regauss_derived_bias_m, ishape_hsm_regauss_derived_bias_c1, ishape_hsm_regauss_derived_bias_c2, zeroarr, zeroarr]).T
+
+        hdulist = pyfits.open(sourceargs['fits_list'][itern])
+        data = hdulist[1].data
+        pofz = data["%s_photoz_best" % (sourceargs['pofz_type']) ]
+        pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<0.1)
+
+        sourceargs['iter'] = sourceargs['iter'] + 1
+        Ngal = pofz.size
+        status = 0
+
+    if sourceargs['type'] == "hsc-wide-s16a_v2.0" and sourceargs['filetype'] == "fits" and  sourceargs["fullpofz"]:
+        itern = sourceargs['iter']
+        if itern == 0:
+            sourceargs['fits_list'] = glob.glob("DataStore/S16A_v2.0/*_tracts/*_%s.fits" % (sourceargs['pofz_type']))
+            sourceargs['fits_list_2'] = glob.glob("DataStore/S16A_v2.0/*_tracts/*_pz.fits")
+            
+        if itern == len(sourceargs['fits_list']):
+            status = 1
+
+        datagal = 0
+        status = not (itern<len(sourceargs['fits_list']))
+        Ngal = 0
+        pofz = 0
+        if status:
+            return datagal, sourceargs, Ngal, status, pofz, 0., 0.
+
+        hdulist = pyfits.open(sourceargs['fits_list'][itern].split("_pz_pdf_%s" % (sourceargs['pofz_type']))[0] + ".fits")
+        data = hdulist[1].data
+        ira = data["ira"]
+        idec = data["idec"]
+
+        ishape_hsm_regauss_e1 = data["ishape_hsm_regauss_e1"]
+        ishape_hsm_regauss_e2 = data["ishape_hsm_regauss_e2"]
+        ishape_hsm_regauss_derived_bias_c1 = data["ishape_hsm_regauss_derived_bias_c1"]
+        ishape_hsm_regauss_derived_bias_c2 = data["ishape_hsm_regauss_derived_bias_c2"]
+        ishape_hsm_regauss_derived_bias_m = data["ishape_hsm_regauss_derived_bias_m"]
+        ishape_hsm_regauss_derived_weight = data["ishape_hsm_regauss_derived_weight"] 
+        zeroarr = ishape_hsm_regauss_derived_bias_c1 * 0.0
+        datagalflag = data["weak_lensing_flag"]
+
+        datagal = np.array([ira, idec, ishape_hsm_regauss_e1, ishape_hsm_regauss_e2, ishape_hsm_regauss_derived_weight, ishape_hsm_regauss_derived_bias_m, ishape_hsm_regauss_derived_bias_c1, ishape_hsm_regauss_derived_bias_c2, zeroarr, zeroarr]).T
+
+        hdulist = pyfits.open(sourceargs['fits_list'][itern].split("_pdf_%s" % sourceargs['pofz_type'])[0] + ".fits")
+        data = hdulist[1].data
+        if sourceargs['pofz_type'] == "frankenz":
+            pofzflag = (datagalflag == True)
+        elif sourceargs['pofz_type'] == "mizuki":
+            pofzflag = (datagalflag == True)
+        elif sourceargs['pofz_type'] == "mlz":
+            pofzflag = (datagalflag == True)
+        elif sourceargs['pofz_type'] == "ephor":
+            pofzflag = (datagalflag == True)
+
+        sourceargs['fitspofz'] = fitsio.FITS(sourceargs['fits_list'][itern])
+
+        pofz = sourceargs['fitspofz'][1]['P(z)'][:]
+        pofz = pofz.reshape((pofz.shape[0], -1,))
+
+        hdulist = pyfits.open(sourceargs['fits_list_2'][itern])
+        data = hdulist[1].data
+        pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<0.1)
+
+        sourceargs['iter'] = sourceargs['iter'] + 1
+        Ngal = np.shape(datagal)[0]
+        status = 0
+
+    return datagal, sourceargs, Ngal, status, pofz, datagalflag, pofzflag
+
+    '''
     if sourceargs['type'] == "hsc-wide" and sourceargs['filetype'] == "fits" and  sourceargs["fullpofz"]:
         itern = sourceargs['iter']
         if itern == 0:
@@ -356,4 +456,9 @@ def source_select(sourceargs, chunksize):
         datagalflag = (forflag==forflag)
         pofzflag = (forflag==forflag)
             
-    return datagal, sourceargs, Ngal, status, pofz, datagalflag, pofzflag
+    '''
+
+def get_pofz_array(sourceargs):
+    hdulist = pyfits.open("DataStore/S16A_v2.0/pz_pdf_bins_%s.fits" % sourceargs['pofz_type'])
+    data = hdulist[1].data
+    return data["bins"]
