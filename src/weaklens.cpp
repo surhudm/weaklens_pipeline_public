@@ -18,6 +18,7 @@ weaklens::weaklens()
     sumdcount_num = (double *)calloc(rbins,sizeof(double));
     sumwls = (double *)calloc(rbins,sizeof(double));
     sumwls_ms  =(double *)calloc(rbins,sizeof(double));
+    sumwls_resp  =(double *)calloc(rbins,sizeof(double));
 
 
     // ========================================================
@@ -57,6 +58,7 @@ weaklens::weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool 
     sumdcount_num = (double *)calloc(rbins,sizeof(double));
     sumwls = (double *)calloc(rbins,sizeof(double));
     sumwls_ms  =(double *)calloc(rbins,sizeof(double));
+    sumwls_resp  =(double *)calloc(rbins,sizeof(double));
 
     verbose=xverbose;
 
@@ -88,6 +90,7 @@ weaklens::~weaklens(){
     free(sumdcount_num);
     free(sumwls);
     free(sumwls_ms);
+    free(sumwls_resp);
     delete cosmo;
     if (verbose){
         fprintf(stderr, "Freed memory related to cosmology and the dsigma arrays\n");
@@ -239,10 +242,10 @@ int weaklens::finalize_lenses()
 int weaklens::test_searchrecord(){
 }
 
-int weaklens::process_source(double sra, double sdec, double se1, double se2, double swt, double smcat, double sc1_dp, double sc2_dp, double sc1_nb, double sc2_nb, double szbest, bool usepdf=false)
+int weaklens::process_source(double sra, double sdec, double se1, double se2, double swt, double srms_e, double smcat, double sc1_dp, double sc2_dp, double sc1_nb, double sc2_nb, double szbest, bool usepdf=false)
 {
 
-    if(std::isnan(sra) || std::isnan(sdec) || std::isnan(se1) || std::isnan(se2) || std::isnan(swt) || std::isnan(smcat) || std::isnan(sc1_dp) || std::isnan(sc2_dp) || std::isnan(sc1_nb) || std::isnan(sc2_nb) || std::isnan(szbest)){
+    if(std::isnan(sra) || std::isnan(sdec) || std::isnan(se1) || std::isnan(se2) || std::isnan(swt) || std::isnan(smcat) || std::isnan(sc1_dp) || std::isnan(sc2_dp) || std::isnan(sc1_nb) || std::isnan(sc2_nb) || std::isnan(szbest) || std::isnan(srms_e)){
         return 1;
     }
     if(!lenses_finalized){
@@ -333,6 +336,7 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
         sumdcount_num[rpbin]+=(wt[xx]);
         sumwls[rpbin]+=wls;
         sumwls_ms[rpbin]+=(wls*(1+smcat));
+        sumwls_resp[rpbin] += (wls*(1-srms_e*srms_e));
         //fprintf(dfile, "%d %.18le %.18le %.18le %.18le %.18le\n", xx, cosangle, sinangle, etan, wls, av_sigc_inv);
         //fprintf(dfile, "%d %.18le %.18le %.18le %.18le %.18le %.18le %.18le %.18le\n", xx, datacen[3*xx], datacen[3*xx+1], datacen[3*xx+2], sx, sy, sz, wls, av_sigc_inv);
         /*
@@ -361,7 +365,8 @@ int weaklens::finalize_results(){
         double rr = logrmin + (i+0.5)*logrdiff;
         double rrmin = pow(10., logrmin + i*logrdiff);
         double rrmax = pow(10., logrmin + (i+1)*logrdiff);
-        fprintf(fout, "%e %le %le %le %le %le %e %le %le %le %le %le \n", rr, sumdsig_num[i], sumwls[i], sumwls_ms[i], sumdsig_num[i]/sumwls_ms[i], sumwls[i]/sumwl, rrmin/2+rrmax/2, sumdcross_num[i]/sumwls_ms[i], sumdcount_num[i]/sumwl, sumdcount_num[i], sqrt(sumdsigsq_num[i])/sumwls_ms[i], sqrt(sumdcrosssq_num[i])/sumwls_ms[i]);
+        double Resp = sumwls_resp[i]/sumwls[i];
+        fprintf(fout, "%e %le %le %le %le %le %le %e %le %le %le %le %le \n", rr, sumdsig_num[i], sumwls[i], sumwls_ms[i], sumwls_resp, sumdsig_num[i]/sumwls_ms[i]/2./Resp, sumwls[i]/sumwl, rrmin/2+rrmax/2, sumdcross_num[i]/sumwls_ms[i]/2./Resp, sumdcount_num[i]/sumwl, sumdcount_num[i], sqrt(sumdsigsq_num[i])/sumwls_ms[i]/2./Resp, sqrt(sumdcrosssq_num[i])/sumwls_ms[i]/2./Resp);
     }
     fclose(fout);
     return 0;

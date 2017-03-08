@@ -93,13 +93,13 @@ while not done:
 
         if sourceargs['filetype'] == "fits":
             if sourceargs['include_corrections']:
-                ragal, decgal, e1gal, e2gal, wgal, mgal, c1_dp, c2_dp, c1_nb, c2_nb = datagal[i]
+                ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb = datagal[i]
                 zphotgal = 0.0
                 e2gal = -e2gal
                 c2_dp = -c2_dp
                 c2_nb = -c2_nb
             else:
-                ragal, decgal, e1gal, e2gal, wgal = datagal[i]
+                ragal, decgal, e1gal, e2gal, wgal, rms_egal = datagal[i]
                 if sourceargs['type'] != "hsc-wide-josh":
                     #print "\nbefore:", ragal, decgal, e1gal, e2gal, wgal
                     wgal = 1./(0.365**2+wgal**2)
@@ -113,15 +113,17 @@ while not done:
                 c1_nb = 0.0*ragal
                 c2_nb = 0.0*ragal
                 zphotgal = 0.0*ragal
+                rms_egal = np.float64(rms_egal)
                 #print ragal, decgal, e1gal, e2gal, wgal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal
 
         elif sourceargs['filetype'] == "ascii" and sourceargs['type'] == "alexie-test":
             ragal, decgal, zphotgal, e1gal, e2gal, wgal = datagal.ra.values[i], datagal.dec.values[i], datagal.z_b.values[i],datagal.e1.values[i],datagal.e2.values[i],datagal.weight.values[i]
             e2gal = -e2gal
             mgal, c1_dp, c2_dp, c1_nb, c2_nb = ragal*0.0, ragal*0.0, ragal*0.0, ragal*0.0, ragal*0.0
+            rms_egal = ragal*0.0+1./np.sqrt(2.)
             
         elif sourceargs['filetype'] == "ascii":
-            ragal, decgal, e1gal, e2gal, wgal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal = datagal.ra.values[i], datagal.dec.values[i], datagal.e1.values[i],datagal.e2.values[i],datagal.weight.values[i],datagal.m.values[i],datagal.c1_dp.values[i],datagal.c2_dp.values[i],datagal.c1_nb.values[i],datagal.c2_nb.values[i],datagal.z_b.values[i]
+            ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal = datagal.ra.values[i], datagal.dec.values[i], datagal.e1.values[i],datagal.e2.values[i],datagal.weight.values[i],datagal.m.values[i],datagal.c1_dp.values[i],datagal.c2_dp.values[i],datagal.c1_nb.values[i],datagal.c2_nb.values[i],datagal.z_b.values[i]
 
         if sourceargs["fullpofz"]:
             if np.isnan(pofz[i][0]):
@@ -134,7 +136,7 @@ while not done:
         else:
             zphotgal = np.float64(pofz[i])
 
-        wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, sourceargs["fullpofz"])
+        wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, sourceargs["fullpofz"])
     wpipe.finalize_results()
 
 wpipe.finalize_results()

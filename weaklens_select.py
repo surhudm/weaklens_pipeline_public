@@ -207,10 +207,11 @@ def source_select(sourceargs, chunksize):
         ishape_hsm_regauss_derived_bias_c2 = data["ishape_hsm_regauss_derived_bias_c2"]
         ishape_hsm_regauss_derived_bias_m = data["ishape_hsm_regauss_derived_bias_m"]
         ishape_hsm_regauss_derived_weight = data["ishape_hsm_regauss_derived_weight"] 
+        ishape_hsm_regauss_derived_rms_e = data["ishape_hsm_regauss_derived_rms_e"] 
         zeroarr = ishape_hsm_regauss_derived_bias_c1 * 0.0
         datagalflag = data["weak_lensing_flag"]
 
-        datagal = np.array([ira, idec, ishape_hsm_regauss_e1, ishape_hsm_regauss_e2, ishape_hsm_regauss_derived_weight, ishape_hsm_regauss_derived_bias_m, ishape_hsm_regauss_derived_bias_c1, ishape_hsm_regauss_derived_bias_c2, zeroarr, zeroarr]).T
+        datagal = np.array([ira, idec, ishape_hsm_regauss_e1, ishape_hsm_regauss_e2, ishape_hsm_regauss_derived_weight, ishape_hsm_regauss_derived_rms_e, ishape_hsm_regauss_derived_bias_m, ishape_hsm_regauss_derived_bias_c1, ishape_hsm_regauss_derived_bias_c2, zeroarr, zeroarr]).T
 
         hdulist = pyfits.open(sourceargs['fits_list'][itern])
         data = hdulist[1].data
@@ -248,10 +249,11 @@ def source_select(sourceargs, chunksize):
         ishape_hsm_regauss_derived_bias_c2 = data["ishape_hsm_regauss_derived_bias_c2"]
         ishape_hsm_regauss_derived_bias_m = data["ishape_hsm_regauss_derived_bias_m"]
         ishape_hsm_regauss_derived_weight = data["ishape_hsm_regauss_derived_weight"] 
+        ishape_hsm_regauss_derived_rms_e = data["ishape_hsm_regauss_derived_rms_e"] 
         zeroarr = ishape_hsm_regauss_derived_bias_c1 * 0.0
         datagalflag = data["weak_lensing_flag"]
 
-        datagal = np.array([ira, idec, ishape_hsm_regauss_e1, ishape_hsm_regauss_e2, ishape_hsm_regauss_derived_weight, ishape_hsm_regauss_derived_bias_m, ishape_hsm_regauss_derived_bias_c1, ishape_hsm_regauss_derived_bias_c2, zeroarr, zeroarr]).T
+        datagal = np.array([ira, idec, ishape_hsm_regauss_e1, ishape_hsm_regauss_e2, ishape_hsm_regauss_derived_weight, ishape_hsm_regauss_derived_rms_e, ishape_hsm_regauss_derived_bias_m, ishape_hsm_regauss_derived_bias_c1, ishape_hsm_regauss_derived_bias_c2, zeroarr, zeroarr]).T
 
         hdulist = pyfits.open(sourceargs['fits_list'][itern].split("_pdf_%s" % sourceargs['pofz_type'])[0] + ".fits")
         data = hdulist[1].data
