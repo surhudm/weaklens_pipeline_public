@@ -19,6 +19,7 @@ weaklens::weaklens()
     sumwls = (double *)calloc(rbins,sizeof(double));
     sumwls_ms  =(double *)calloc(rbins,sizeof(double));
     sumwls_resp  =(double *)calloc(rbins,sizeof(double));
+    sumpairs = (double *)calloc(rbins,sizeof(double));
 
 
     // ========================================================
@@ -59,6 +60,7 @@ weaklens::weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool 
     sumwls = (double *)calloc(rbins,sizeof(double));
     sumwls_ms  =(double *)calloc(rbins,sizeof(double));
     sumwls_resp  =(double *)calloc(rbins,sizeof(double));
+    sumpairs = (double *)calloc(rbins,sizeof(double));
 
     verbose=xverbose;
 
@@ -91,6 +93,7 @@ weaklens::~weaklens(){
     free(sumwls);
     free(sumwls_ms);
     free(sumwls_resp);
+    free(sumpairs);
     delete cosmo;
     if (verbose){
         fprintf(stderr, "Freed memory related to cosmology and the dsigma arrays\n");
@@ -337,6 +340,8 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
         sumwls[rpbin]+=wls;
         sumwls_ms[rpbin]+=(wls*(1+smcat));
         sumwls_resp[rpbin] += (wls*(1-srms_e*srms_e));
+        sumpairs[rpbin] += 1.0;
+
         //fprintf(dfile, "%d %.18le %.18le %.18le %.18le %.18le\n", xx, cosangle, sinangle, etan, wls, av_sigc_inv);
         //fprintf(dfile, "%d %.18le %.18le %.18le %.18le %.18le %.18le %.18le %.18le\n", xx, datacen[3*xx], datacen[3*xx+1], datacen[3*xx+2], sx, sy, sz, wls, av_sigc_inv);
         /*
@@ -366,7 +371,7 @@ int weaklens::finalize_results(){
         double rrmin = pow(10., logrmin + i*logrdiff);
         double rrmax = pow(10., logrmin + (i+1)*logrdiff);
         double Resp = sumwls_resp[i]/sumwls[i];
-        fprintf(fout, "%e %le %le %le %le %le %le %e %le %le %le %le %le \n", rr, sumdsig_num[i], sumwls[i], sumwls_ms[i], sumwls_resp, sumdsig_num[i]/sumwls_ms[i]/2./Resp, sumwls[i]/sumwl, rrmin/2+rrmax/2, sumdcross_num[i]/sumwls_ms[i]/2./Resp, sumdcount_num[i]/sumwl, sumdcount_num[i], sqrt(sumdsigsq_num[i])/sumwls_ms[i]/2./Resp, sqrt(sumdcrosssq_num[i])/sumwls_ms[i]/2./Resp);
+        fprintf(fout, "%e %le %le %le %le %le %le %e %le %le %le %le %le %le \n", rr, sumdsig_num[i], sumwls[i], sumwls_ms[i], sumwls_resp[i], sumdsig_num[i]/sumwls_ms[i]/2./Resp, sumwls[i]/sumwl, rrmin/2+rrmax/2, sumdcross_num[i]/sumwls_ms[i]/2./Resp, sumdcount_num[i]/sumwl, sumdcount_num[i], sqrt(sumdsigsq_num[i])/sumwls_ms[i]/2./Resp, sqrt(sumdcrosssq_num[i])/sumwls_ms[i]/2./Resp, sumpairs[i]);
     }
     fclose(fout);
     return 0;
