@@ -4,8 +4,142 @@ import pandas
 import sys
 import fitsio
 import glob
+from sqlitedict import SqliteDict
 
 def lens_select(lensargs):
+    if lensargs['type'] == "hsc-cmass-subsample-random":
+        df = pandas.read_csv("DataStore/HSC_CMASS/Final_CMASS_K+E.dat", delim_whitespace=1)
+        ra = df.ra.values
+        dec = df.dec.values
+        zred = df.z.values
+        wt = (df.weight_noz.values + df.weight_cp.values - 1.0)* df.weight_star.values
+        iMag = df.iMag_Wake.values
+        idx = (iMag>lensargs["iMagmin"]) & (iMag<=lensargs["iMagmax"]) & (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"])
+
+        idxall = (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"])
+        zarr = np.linspace(lensargs["zmin"], lensargs["zmax"], 20)
+        selarr = np.zeros(zarr.size-1)
+        for i in range(1, zarr.size):
+            selarr[i-1] = np.sum(idx & (zred>zarr[i-1]) & (zred<=zarr[i]))*1.0/np.sum(idxall & (zred>zarr[i-1]) & (zred<=zarr[i]))
+            print i, selarr[i-1], "\n================="
+        zarr = zarr[:-1]/2. + zarr[1:]/2.
+
+        from scipy.interpolate import UnivariateSpline
+        selspl = UnivariateSpline(zarr, selarr, bbox=(lensargs["zmin"], lensargs["zmax"]), ext=1)
+
+        with SqliteDict("DataStore/HSC_CMASS/randoms/ran%03d.sqlite3" % (lensargs["rannum"])) as data:
+            ra = data["ra"]
+            dec = data["dec"]
+            zred = data["z"].astype('float64')
+            wt = data["weight"].astype("float64")
+
+            idx = (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"])
+            ra = ra[idx]
+            dec = dec[idx]
+            zred = zred[idx]
+            wt = wt[idx]
+
+            np.random.seed(lensargs["rannum"])
+            rannum = np.random.random(size=ra.size)
+            idx = (rannum<selspl(zred))
+            ra = ra[idx]
+            dec = dec[idx]
+            zred = zred[idx]
+            wt = wt[idx]
+
+        sys.stdout.write("Selecting %d samples \n" % (ra.size))
+        #jackreg = getregions(ra, dec, lensargs["jackregfile"])
+        return ra, dec, zred, wt #, jackreg
+
+
+    if lensargs['type'] == "hsc-cmass-subsample":
+        df = pandas.read_csv("DataStore/HSC_CMASS/Final_CMASS_K+E.dat", delim_whitespace=1)
+        ra = df.ra.values
+        dec = df.dec.values
+        zred = df.z.values
+        wt = (df.weight_noz.values + df.weight_cp.values - 1.0)* df.weight_star.values
+        iMag = df.iMag_Wake.values
+        idx = (iMag>lensargs["iMagmin"]) & (iMag<=lensargs["iMagmax"]) & (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"])
+
+        if lensargs['selection_write'] == 1:
+            idxall = (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"])
+            zarr = np.linspace(lensargs["zmin"], lensargs["zmax"], 20)
+            selarr = np.zeros(zarr.size-1)
+            for i in range(1, zarr.size):
+                selarr[i-1] = np.sum(idx & (zred>zarr[i-1]) & (zred<=zarr[i]))*1.0/np.sum(idxall & (zred>zarr[i-1]) & (zred<=zarr[i]))
+                print i, selarr[i-1], "\n================="
+            zarr = zarr[:-1]/2. + zarr[1:]/2.
+            dfsel = pandas.DataFrame(zarr, columns=(["zred"]))
+            dfsel["sel"] = selarr
+            dfsel.to_csv(lensargs["selection"], index=False, sep=" ")
+
+        ra = ra[idx]
+        dec = dec[idx]
+        zred = zred[idx]
+        wt = wt[idx]
+        iMag = iMag[idx]
+
+        sys.stdout.write("Selecting %d samples \n" % (ra.size))
+        #jackreg = getregions(ra, dec, lensargs["jackregfile"])
+        return ra, dec, zred, wt #, jackreg
+
+
+    if lensargs['type'] == "Masato-mock-random":
+        rannum = lensargs['rannum']
+        rotation = lensargs['rotation']
+        realization = lensargs['realization']
+        files = glob.glob("DataStore/Mocks_HOD/random_*")
+        np.random.seed(rannum)
+
+        for i, fname in enumerate(files):
+            tractreg = fname.split("_")[-1]
+            realfile = "DataStore/Mocks_HOD/r%03d_rotmat%d_%s" % (realization, rotation, tractreg)
+            dfreal = pandas.read_csv(realfile, delim_whitespace=1, skiprows=1, names=(["ra", "dec", "z"]), usecols=([1, 2, 3]))
+            Nreal = dfreal.ra.values.size
+
+            rowstart = rannum * Nreal
+            if i==0:
+                df = pandas.read_csv(fname, delim_whitespace=1, skiprows=1+rowstart, names=(["ra", "dec", "z"]), usecols=([0, 1, 2]), nrows=Nreal)
+            else:
+                dfp = pandas.read_csv(fname, delim_whitespace=1, skiprows=1+rowstart, names=(["ra", "dec", "z"]), usecols=([0, 1, 2]), nrows=Nreal)
+                df = df.append(dfp, ignore_index=1)
+
+        ra = df.ra.values
+        dec = df.dec.values
+        zred = df.z.values
+
+        idx = (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"])
+        ra = ra[idx]
+        dec = dec[idx]
+        zred = zred[idx]
+        wt = ra/ra
+
+        sys.stdout.write("Selecting %d lenses \n" % (ra.size))
+        return ra, dec, zred, wt
+
+    if lensargs['type'] == "Masato-mock":
+        realization = lensargs['realization']
+        rotation = lensargs['rotation']
+        files = glob.glob("DataStore/Mocks_HOD/r%03d_rotmat%d_*" % (realization, rotation))
+        for i, fname in enumerate(files):
+            if i==0:
+                df = pandas.read_csv(fname, delim_whitespace=1, skiprows=1, names=(["id", "ra", "dec", "z"]), usecols=([0, 1, 2, 3]))
+            else:
+                df = df.append(pandas.read_csv(fname, delim_whitespace=1, skiprows=1, names=(["id", "ra", "dec", "z"]), usecols=([0, 1, 2, 3])), ignore_index=1)
+        
+        ra = df.ra.values
+        dec = df.dec.values
+        zred = df.z.values
+
+        idx = (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"])
+        ra = ra[idx]
+        dec = dec[idx]
+        zred = zred[idx]
+        wt = ra/ra
+
+        sys.stdout.write("Selecting %d lenses \n" % (ra.size))
+        return ra, dec, zred, wt
+
     if lensargs['type'] == "dr12-lowz":
         hdulist = pyfits.open("DataStore/DR12/galaxy_DR12v5_LOWZ_North.fits.gz")
         data = hdulist[1].data
@@ -70,6 +204,18 @@ def lens_select(lensargs):
         wt = np.append(wt_n, wt_s)
         
         sys.stdout.write("Selecting %d lenses \n" % (ra.size))
+        return ra, dec, zred, wt
+
+    if lensargs['type'] == "voids":
+
+        df = pandas.read_csv("DataStore/Voids/Void_combined_catalog.dat", delim_whitespace=1)
+        ra = df.ra.values
+        dec = df.dec.values
+        zred = df.zred.values
+        wt = ra/ra
+        
+        sys.stdout.write("Selecting %d voids \n" % (ra.size))
+        #return ra[idx], dec[idx], zred[idx], wt[idx]
         return ra, dec, zred, wt
 
     if lensargs['type'] == "alexie-test":
@@ -226,7 +372,6 @@ def source_select(sourceargs, chunksize):
         itern = sourceargs['iter']
         if itern == 0:
             sourceargs['fits_list'] = glob.glob("DataStore/S16A_v2.0/*_tracts/*_%s.fits" % (sourceargs['pofz_type']))
-            sourceargs['fits_list_2'] = glob.glob("DataStore/S16A_v2.0/*_tracts/*_pz.fits")
             
         if itern == len(sourceargs['fits_list']):
             status = 1
@@ -237,6 +382,9 @@ def source_select(sourceargs, chunksize):
         pofz = 0
         if status:
             return datagal, sourceargs, Ngal, status, pofz, 0., 0.
+
+        tractnum = (sourceargs['fits_list'][itern].split("/")[-1]).split("_pz")[0]
+        tractreg = (sourceargs['fits_list'][itern].split("/")[2]).split("_tracts")[0]
 
         hdulist = pyfits.open(sourceargs['fits_list'][itern].split("_pz_pdf_%s" % (sourceargs['pofz_type']))[0] + ".fits")
         data = hdulist[1].data
@@ -271,7 +419,84 @@ def source_select(sourceargs, chunksize):
         pofz = sourceargs['fitspofz'][1]['P(z)'][:]
         pofz = pofz.reshape((pofz.shape[0], -1,))
 
-        hdulist = pyfits.open(sourceargs['fits_list_2'][itern])
+        hdulist = pyfits.open("DataStore/S16A_v2.0/%s_tracts/%s_pz.fits" % (tractreg, tractnum) )
+        data = hdulist[1].data
+        pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<0.1)
+
+        sourceargs['iter'] = sourceargs['iter'] + 1
+        Ngal = np.shape(datagal)[0]
+        status = 0
+
+    if sourceargs['type'] == "mockhsc-wide-s16a_v2.0" and sourceargs['filetype'] == "fits" and  sourceargs["fullpofz"]:
+        rotation = sourceargs['rotation']
+        realization = sourceargs['realization']
+        itern = sourceargs['iter']
+        if itern == 0:
+            sourceargs['fits_list'] = glob.glob("DataStore/S16A_v2.0/*_tracts/*_%s.fits" % (sourceargs['pofz_type']))
+            #sourceargs['fits_list_2'] = glob.glob("DataStore/S16A_v2.0/*_tracts/*_pz.fits")
+
+        while itern<len(sourceargs['fits_list']):
+            tractnum = (sourceargs['fits_list'][itern].split("/")[-1]).split("_pz")[0]
+            tractreg = (sourceargs['fits_list'][itern].split("/")[2]).split("_tracts")[0]
+            print tractnum, tractreg
+            try:
+                mockname = "DataStore/Mocks_shape/%s/r%03d/rotmat%s/mock_%s.fits" % (tractreg, realization, rotation, tractnum)
+                print mockname
+                hdulistmock = pyfits.open(mockname)
+                datamock = hdulistmock[1].data
+                break
+            except:
+                itern = itern + 1
+                sourceargs['iter'] = itern
+        
+        if itern == len(sourceargs['fits_list']):
+            status = 1
+
+        datagal = 0
+        status = not (itern<len(sourceargs['fits_list']))
+        Ngal = 0
+        pofz = 0
+        if status:
+            return datagal, sourceargs, Ngal, status, pofz, 0., 0.
+
+        print itern, sourceargs['fits_list'][itern]
+        shapefile = sourceargs['fits_list'][itern].split("_pz_pdf_%s" % (sourceargs['pofz_type']))[0] + ".fits"
+        print shapefile
+        hdulist = pyfits.open(shapefile)
+        data = hdulist[1].data
+        ira = data["ira"]
+        idec = data["idec"]
+
+        ishape_hsm_regauss_e1 = datamock["e1_mock"].astype("float64")
+        ishape_hsm_regauss_e2 = datamock["e2_mock"].astype("float64")
+
+        ishape_hsm_regauss_derived_bias_c1 = data["ishape_hsm_regauss_derived_bias_c1"] * 0.0
+        ishape_hsm_regauss_derived_bias_c2 = data["ishape_hsm_regauss_derived_bias_c2"] * 0.0
+        ishape_hsm_regauss_derived_bias_m = data["ishape_hsm_regauss_derived_bias_m"] * 0.0
+        ishape_hsm_regauss_derived_weight = data["ishape_hsm_regauss_derived_weight"] 
+        ishape_hsm_regauss_derived_rms_e = data["ishape_hsm_regauss_derived_rms_e"] 
+        zeroarr = ishape_hsm_regauss_derived_bias_c1 * 0.0
+        datagalflag = data["weak_lensing_flag"]
+
+        datagal = np.array([ira, idec, ishape_hsm_regauss_e1, ishape_hsm_regauss_e2, ishape_hsm_regauss_derived_weight, ishape_hsm_regauss_derived_rms_e, ishape_hsm_regauss_derived_bias_m, ishape_hsm_regauss_derived_bias_c1, ishape_hsm_regauss_derived_bias_c2, zeroarr, zeroarr]).T
+
+        hdulist = pyfits.open(sourceargs['fits_list'][itern].split("_pdf_%s" % sourceargs['pofz_type'])[0] + ".fits")
+        data = hdulist[1].data
+        if sourceargs['pofz_type'] == "frankenz":
+            pofzflag = (datagalflag == True)
+        elif sourceargs['pofz_type'] == "mizuki":
+            pofzflag = (datagalflag == True)
+        elif sourceargs['pofz_type'] == "mlz":
+            pofzflag = (datagalflag == True)
+        elif sourceargs['pofz_type'] == "ephor":
+            pofzflag = (datagalflag == True)
+
+        sourceargs['fitspofz'] = fitsio.FITS(sourceargs['fits_list'][itern])
+
+        pofz = sourceargs['fitspofz'][1]['P(z)'][:]
+        pofz = pofz.reshape((pofz.shape[0], -1,))
+
+        hdulist = pyfits.open("DataStore/S16A_v2.0/%s_tracts/%s_pz.fits" % (tractreg, tractnum))
         data = hdulist[1].data
         pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<0.1)
 
