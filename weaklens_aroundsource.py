@@ -77,7 +77,8 @@ def run_pipeline(config):
         except:
             sys.stdout.write("\n Passed: \n")
     
-        for i in frogress.bar(range(Ngal)):
+        #for i in frogress.bar(range(Ngal)):
+        for i in range(Ngal):
             if not datagalflag[i] or not pofzflag[i]:
                 continue
         #for i in range(Ngal):

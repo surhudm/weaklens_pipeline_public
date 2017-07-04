@@ -7,6 +7,42 @@ import glob
 from sqlitedict import SqliteDict
 
 def lens_select(lensargs):
+    if lensargs["type"] == "mgii-absorbers-ran":
+        hdulist = pyfits.open("DataStore/INFO_140303_Ref_Mg_II_DR79_match.fits")
+        data = hdulist[1].data
+        ra = data["ra"].astype("float64")
+        dec = data["dec"].astype("float64")
+        zabs = data["zabs"].astype("float64")
+         
+        idx = (zabs>lensargs["zmin"]) & (zabs<=lensargs["zmax"])
+        ra = ra[idx]
+        dec = dec[idx]
+        zabs = zabs[idx]
+
+        wt = ra/ra
+
+        sys.stdout.write("Selecting %d samples \n" % (ra.size))
+
+        return ra, dec, zabs, wt
+
+    if lensargs["type"] == "mgii-absorbers":
+        hdulist = pyfits.open("DataStore/INFO_140303_Mg_II_DR79_match.fits")
+        data = hdulist[1].data
+        ra = data["ra"].astype("float64")
+        dec = data["dec"].astype("float64")
+        zabs = data["zabs"].astype("float64")
+         
+        idx = (zabs>lensargs["zmin"]) & (zabs<=lensargs["zmax"])
+        ra = ra[idx]
+        dec = dec[idx]
+        zabs = zabs[idx]
+
+        wt = ra/ra
+
+        sys.stdout.write("Selecting %d samples \n" % (ra.size))
+
+        return ra, dec, zabs, wt
+
     if lensargs['type'] == "hsc-cmass-subsample-random":
         df = pandas.read_csv("DataStore/HSC_CMASS/Final_CMASS_K+E.dat", delim_whitespace=1)
         ra = df.ra.values
@@ -83,8 +119,57 @@ def lens_select(lensargs):
         #jackreg = getregions(ra, dec, lensargs["jackregfile"])
         return ra, dec, zred, wt #, jackreg
 
+    if lensargs['type'] == "SDSS-QSOs-John":
+        fname = "DataStore/SDSS_QSOs_zlt1.asc"
+        dfreal = pandas.read_csv(fname, delim_whitespace=1, names=(["ra", "dec", "z"]), usecols=([1, 2, 7]))
+        ra = dfreal["ra"].values
+        dec = dfreal["dec"].values
+        zred = dfreal["z"].values
 
-    if lensargs['type'] == "Masato-mock-random":
+        idx = (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"])
+        ra = ra[idx]
+        dec = dec[idx]
+        zred = zred[idx]
+        wt = ra/ra
+
+        sys.stdout.write("Selecting %d lenses \n" % (ra.size))
+        return ra, dec, zred, wt
+
+    if lensargs['type'] == "Masato-mock-forreq-random-full":
+        rannum = lensargs['rannum']
+        rotation = lensargs['rotation']
+        realization = lensargs['realization']
+        files = glob.glob("DataStore/Mocks_HOD_full/random_*")
+        np.random.seed(rannum)
+
+        for i, fname in enumerate(files):
+            tractreg = fname.split("_")[-1]
+            realfile = "DataStore/Mocks_HOD_full/r%03d_rotmat%d_%s" % (realization, rotation, tractreg)
+            dfreal = pandas.read_csv(realfile, delim_whitespace=1, skiprows=1, names=(["ra", "dec", "z"]), usecols=([1, 2, 3]))
+            Nreal = dfreal.ra.values.size
+
+            rowstart = rannum * Nreal
+            if i==0:
+                df = pandas.read_csv(fname, delim_whitespace=1, skiprows=1+rowstart, names=(["ra", "dec", "z"]), usecols=([0, 1, 2]), nrows=Nreal)
+            else:
+                dfp = pandas.read_csv(fname, delim_whitespace=1, skiprows=1+rowstart, names=(["ra", "dec", "z"]), usecols=([0, 1, 2]), nrows=Nreal)
+                df = df.append(dfp, ignore_index=1)
+
+        ra = df.ra.values
+        dec = df.dec.values
+        zred = df.z.values
+
+        idx = (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"])
+        ra = ra[idx]
+        dec = dec[idx]
+        zred = zred[idx]
+        wt = ra/ra
+
+        sys.stdout.write("Selecting %d lenses \n" % (ra.size))
+        return ra, dec, zred, wt
+
+
+    if lensargs['type'] == "Masato-mock-forreq-random":
         rannum = lensargs['rannum']
         rotation = lensargs['rotation']
         realization = lensargs['realization']
@@ -117,10 +202,60 @@ def lens_select(lensargs):
         sys.stdout.write("Selecting %d lenses \n" % (ra.size))
         return ra, dec, zred, wt
 
-    if lensargs['type'] == "Masato-mock":
+    if lensargs['type'] == "Masato-mock-forreq-full":
+        realization = lensargs['realization']
+        rotation = lensargs['rotation']
+        files = glob.glob("DataStore/Mocks_HOD_full/r%03d_rotmat%d_*" % (realization, rotation))
+        for i, fname in enumerate(files):
+            if i==0:
+                df = pandas.read_csv(fname, delim_whitespace=1, skiprows=1, names=(["id", "ra", "dec", "z"]), usecols=([0, 1, 2, 3]))
+            else:
+                df = df.append(pandas.read_csv(fname, delim_whitespace=1, skiprows=1, names=(["id", "ra", "dec", "z"]), usecols=([0, 1, 2, 3])), ignore_index=1)
+        
+        ra = df.ra.values
+        dec = df.dec.values
+        zred = df.z.values
+
+        idx = (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"])
+        ra = ra[idx]
+        dec = dec[idx]
+        zred = zred[idx]
+        wt = ra/ra
+
+        sys.stdout.write("Selecting %d lenses \n" % (ra.size))
+        return ra, dec, zred, wt
+
+
+    if lensargs['type'] == "Masato-mock-forreq":
         realization = lensargs['realization']
         rotation = lensargs['rotation']
         files = glob.glob("DataStore/Mocks_HOD/r%03d_rotmat%d_*" % (realization, rotation))
+        for i, fname in enumerate(files):
+            if i==0:
+                df = pandas.read_csv(fname, delim_whitespace=1, skiprows=1, names=(["id", "ra", "dec", "z"]), usecols=([0, 1, 2, 3]))
+            else:
+                df = df.append(pandas.read_csv(fname, delim_whitespace=1, skiprows=1, names=(["id", "ra", "dec", "z"]), usecols=([0, 1, 2, 3])), ignore_index=1)
+        
+        ra = df.ra.values
+        dec = df.dec.values
+        zred = df.z.values
+
+        idx = (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"])
+        ra = ra[idx]
+        dec = dec[idx]
+        zred = zred[idx]
+        wt = ra/ra
+
+        sys.stdout.write("Selecting %d lenses \n" % (ra.size))
+        return ra, dec, zred, wt
+
+    if lensargs['type'] == "Masato-mock":
+        realization = lensargs['realization']
+        rotation = lensargs['rotation']
+        sample = lensargs['sample']
+        zmin = lensargs["zmin"]
+        zmax = lensargs["zmax"]
+        files = glob.glob("DataStore/hod_gal/%s_%.2f_%.2f/newID/r%03d_rotmat%d_*" % (sample, zmin, zmax, realization, rotation))
         for i, fname in enumerate(files):
             if i==0:
                 df = pandas.read_csv(fname, delim_whitespace=1, skiprows=1, names=(["id", "ra", "dec", "z"]), usecols=([0, 1, 2, 3]))
@@ -169,6 +304,26 @@ def lens_select(lensargs):
         dec = np.append(dec_n, dec_s)
         zred = np.append(zred_n, zred_s)
         wt = np.append(wt_n, wt_s)
+        
+        sys.stdout.write("Selecting %d lenses \n" % (ra.size))
+        return ra, dec, zred, wt
+
+    if lensargs['type'] == "cfht-cmass-reproduce":
+        hdulist = pyfits.open("DataStore/HSC_CMASS/cmass-dr11v1-A-Anderson.dat_wcollind_mstel_xdist.fits")
+        data = hdulist[1].data
+        ra = data["ra"]
+        dec = data["dec"]
+        zred = data["z"].astype('float64')
+        wt_star = data["weight_star"].astype("float64")
+        wt_noz = data["weight_noz"].astype("float64")
+        wt_cp = data["weight_cp"].astype("float64")
+        wt = wt_star*(wt_noz+wt_cp-1)
+        mstar = data["logmass"]
+        idx = (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"]) & (mstar>lensargs["mstarmin"]) & (mstar<=lensargs["mstarmax"])
+        ra = ra[idx]
+        dec = dec[idx]
+        zred = zred[idx]
+        wt = wt[idx]
         
         sys.stdout.write("Selecting %d lenses \n" % (ra.size))
         return ra, dec, zred, wt
@@ -362,7 +517,7 @@ def source_select(sourceargs, chunksize):
         hdulist = pyfits.open(sourceargs['fits_list'][itern])
         data = hdulist[1].data
         pofz = data["%s_photoz_best" % (sourceargs['pofz_type']) ]
-        pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<0.1)
+        pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<0.5)
 
         sourceargs['iter'] = sourceargs['iter'] + 1
         Ngal = pofz.size
@@ -421,7 +576,7 @@ def source_select(sourceargs, chunksize):
 
         hdulist = pyfits.open("DataStore/S16A_v2.0/%s_tracts/%s_pz.fits" % (tractreg, tractnum) )
         data = hdulist[1].data
-        pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<0.1)
+        pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<0.5)
 
         sourceargs['iter'] = sourceargs['iter'] + 1
         Ngal = np.shape(datagal)[0]
@@ -498,7 +653,7 @@ def source_select(sourceargs, chunksize):
 
         hdulist = pyfits.open("DataStore/S16A_v2.0/%s_tracts/%s_pz.fits" % (tractreg, tractnum))
         data = hdulist[1].data
-        pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<0.1)
+        pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<0.5)
 
         sourceargs['iter'] = sourceargs['iter'] + 1
         Ngal = np.shape(datagal)[0]
