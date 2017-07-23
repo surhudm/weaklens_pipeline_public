@@ -53,11 +53,12 @@ class weaklens
 
         double gee;
         double cee;
+        double Omegam;
 
     public:
         kdtree2::KDTree *tree;
         weaklens();
-        weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool xverbose);
+        weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool xverbose, double Omegam);
         ~weaklens();
         int allocate_lens_memory(int xNcen);
         int process_lens(double xra, double xdec, double xzred, double xwt);

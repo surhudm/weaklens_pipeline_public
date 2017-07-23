@@ -5,6 +5,7 @@ weaklens::weaklens()
     rmin=0.5;
     rmax=15.0;
     rbins=15;
+    Omegam=0.279;
     logrmin=log10(rmin);
     logrmax=log10(rmax);
     logrdiff=(logrmax-logrmin)/rbins;
@@ -26,7 +27,7 @@ weaklens::weaklens()
     // Initialize cosmology
     // ========================================================
     //cosmo = new cosmology(0.27,0.0,-1.0,0.0,0.0476,0.7,2.726,0.8,0.96,log10(8.0),1.0);
-    cosmo = new cosmology(0.279,0.0,-1.0,0.0,0.0476,0.7,2.726,0.8,0.96,log10(8.0),1.0);
+    cosmo = new cosmology(Omegam,0.0,-1.0,0.0,0.0476,0.7,2.726,0.8,0.96,log10(8.0),1.0);
     lenses_alloc=false;
     lenses_finalized=false;
     zredmin=1.E30;
@@ -43,11 +44,12 @@ weaklens::weaklens()
 
 }
 
-weaklens::weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool xverbose)
+weaklens::weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool xverbose, double xOmegam=0.279)
 {
     rmin=xrmin;
     rmax=xrmax;
     rbins=xrbins;
+    Omegam=xOmegam;
     logrmin=log10(rmin);
     logrmax=log10(rmax);
     logrdiff=(logrmax-logrmin)/rbins;
@@ -70,7 +72,7 @@ weaklens::weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool 
     // ========================================================
     //cosmo = new cosmology(0.27,0.0,-1.0,0.0,0.0476,0.7,2.726,0.8,0.96,log10(8.0),1.0);
     //cosmo = new cosmology(0.31,0.0,-1.0,0.0,0.0476,0.7,2.726,0.8,0.96,log10(8.0),1.0);
-    cosmo = new cosmology(0.279,0.0,-1.0,0.0,0.0476,0.7,2.726,0.8,0.96,log10(8.0),1.0);
+    cosmo = new cosmology(Omegam,0.0,-1.0,0.0,0.0476,0.7,2.726,0.8,0.96,log10(8.0),1.0);
     lenses_alloc=false;
     lenses_finalized=false;
     zredmin=1.E30;
