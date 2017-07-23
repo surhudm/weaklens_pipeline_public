@@ -153,5 +153,8 @@ if __name__ == "__main__":
     config["rmin"] = args.rmin
     config["rbin"] = args.rbin
 
+    if "Omegam" in config.keys:
+        config["Omegam"] = 0.279
+
 
     run_pipeline(config)
