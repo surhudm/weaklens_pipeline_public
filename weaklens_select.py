@@ -5,8 +5,53 @@ import sys
 import fitsio
 import glob
 from sqlitedict import SqliteDict
+import gnupg
+
+gpg = gnupg.GPG()
+
+def FITS_to_PGP(message):
+    """
+    Turns a string stored into an FITS comment back into a proper
+    PGP message
+    """
+    s = "-----BEGIN PGP MESSAGE-----\n\n"
+    s += message
+    s += "\n-----END PGP MESSAGE-----\n"
+    return s
+
+# This is the function which you will use to decrypt the string
+def decrypt_string(encrypted_string):
+    #string = getpass.getpass(prompt="Enter passphrase to unlock the private key:\n")
+    decrypted_data = gpg.decrypt(encrypted_string) #, passphrase=string)
+
+    print 'ok: ', decrypted_data.ok
+    print 'status: ', decrypted_data.status
+    #print 'stderr: ', decrypted_data.stderr
+    #print 'Decrypted string (additive m value for the catalog): ', decrypted_data.data
+    return decrypted_data.data
 
 def lens_select(lensargs):
+    """
+    lens_select(dictionary lensargs)
+
+    Selects lens sample
+
+    :Parameters:
+    
+    -    lensargs : Dictionary read from the config file which contains various
+         cuts on the lens sample
+
+    :Returns:
+    
+    -    ra : Right ascension in degrees
+    -    dec : Declination in degrees
+    -    zred : Redshift
+    -    weight : Weights for the lenses
+
+    :Adding new samples:
+    
+    Add new samples by copy pasting one of the lensargs block and then modifying them according to your will
+    """
     if lensargs["type"] == "mgii-absorbers-ran":
         hdulist = pyfits.open("DataStore/INFO_140303_Ref_Mg_II_DR79_match.fits")
         data = hdulist[1].data
@@ -44,14 +89,15 @@ def lens_select(lensargs):
         return ra, dec, zabs, wt
 
     if lensargs['type'] == "hsc-cmass-subsample-random":
-        df = pandas.read_csv("DataStore/HSC_CMASS/Final_CMASS_K+E.dat", delim_whitespace=1)
+        df = pandas.read_csv("DataStore/HSC_CMASS/CMASS_K+E_v0.99.dat", delim_whitespace=1)
         ra = df.ra.values
         dec = df.dec.values
         zred = df.z.values
         wt = (df.weight_noz.values + df.weight_cp.values - 1.0)* df.weight_star.values
-        iMag = df.iMag_Wake.values
+        iMag = df.Mag_Wake.values
         idx = (iMag>lensargs["iMagmin"]) & (iMag<=lensargs["iMagmax"]) & (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"])
 
+        # First compute the selection function as a function of redshift
         idxall = (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"])
         zarr = np.linspace(lensargs["zmin"], lensargs["zmax"], 20)
         selarr = np.zeros(zarr.size-1)
@@ -89,12 +135,12 @@ def lens_select(lensargs):
 
 
     if lensargs['type'] == "hsc-cmass-subsample":
-        df = pandas.read_csv("DataStore/HSC_CMASS/Final_CMASS_K+E.dat", delim_whitespace=1)
+        df = pandas.read_csv("DataStore/HSC_CMASS/CMASS_K+E_v0.99.dat", delim_whitespace=1)
         ra = df.ra.values
         dec = df.dec.values
         zred = df.z.values
         wt = (df.weight_noz.values + df.weight_cp.values - 1.0)* df.weight_star.values
-        iMag = df.iMag_Wake.values
+        iMag = df.Mag_Wake.values
         idx = (iMag>lensargs["iMagmin"]) & (iMag<=lensargs["iMagmax"]) & (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"])
 
         if lensargs['selection_write'] == 1:
@@ -306,6 +352,12 @@ def lens_select(lensargs):
         wt = np.append(wt_n, wt_s)
         
         sys.stdout.write("Selecting %d lenses \n" % (ra.size))
+
+        if "pofzoutput" in lensargs:
+            n, bins = np.histogram(zred, weights=wt, bins=np.linspace(np.min(zred), np.max(zred), 20), normed=1)
+            np.savetxt(lensargs["pofzoutput"], np.transpose([bins[1:]/2+bins[:-1]/2, n]))
+            exit(11)
+
         return ra, dec, zred, wt
 
     if lensargs['type'] == "cfht-cmass-reproduce":
@@ -359,6 +411,12 @@ def lens_select(lensargs):
         wt = np.append(wt_n, wt_s)
         
         sys.stdout.write("Selecting %d lenses \n" % (ra.size))
+
+        if "pofzoutput" in lensargs:
+            n, bins = np.histogram(zred, weights=wt, bins=np.linspace(np.min(zred), np.max(zred), 20), normed=1)
+            np.savetxt(lensargs["pofzoutput"], np.transpose([bins[1:]/2+bins[:-1]/2, n]))
+            exit(11)
+
         return ra, dec, zred, wt
 
     if lensargs['type'] == "voids":
@@ -476,12 +534,195 @@ def lens_select(lensargs):
 
         idx = (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"]) & (lam>lensargs["lammin"]) & (lam<=lensargs["lammax"])
         sys.stdout.write("Selecting %d lenses \n" % (np.sum(idx)))
-        return ra[idx], dec[idx], zred[idx], wt[idx]
+
+        ra = ra[idx]
+        dec = dec[idx]
+        zred = zred[idx]
+        wt = wt[idx]
+
+        if "pofzoutput" in lensargs:
+            n, bins = np.histogram(zred, weights=wt, bins=np.linspace(np.min(zred), np.max(zred), 20), normed=1)
+            np.savetxt(lensargs["pofzoutput"], np.transpose([bins[1:]/2+bins[:-1]/2, n]))
+            exit(11)
+        return ra, dec, zred, wt
 
 
 def source_select(sourceargs, chunksize):
+    """
+    source_select(dictionary lensargs)
 
+    Selects source sample
+
+    :Parameters:
+    
+    -    sourceargs : Dictionary read from the config file which contains various
+         cuts on the source sample
+    -    chunksize : The chunksize of sources to be read (only applicable for some ascii readers)
+
+    :Returns:     return datagal, sourceargs, Ngal, status, pofz, datagalflag, pofzflag
+    
+    -    datagal : array consisting of ra, dec, e1, e2, weight, erms, m, c1, c2, a1, a2
+    -    sourceargs : Dictionary read from the config file which contains various
+         cuts on the source sample
+    -    Ngal : Number of galaxies
+    -    status : status of the read
+    -    pofz : Record arrays read from the P(z) file for `Ngal` galaxies
+    -    datagalflag: Flag array to indicate whether to use the galaxy or not
+    -    pofzflag: Flag array to indicate whether to use the photoz of the galaxy or not
+
+    """
     if sourceargs['type'] == "hsc-wide-s16a_v2.0" and sourceargs['filetype'] == "fits" and not sourceargs["fullpofz"]:
+
+        # This variable iterates over the different fields in the catalog
+        itern = sourceargs['iter']
+        if itern == 0:
+            sourceargs["df"] = pandas.read_csv("DataStore/S16A_v2.0/Mapping_from_Rachel_catalogs_to_Hironao_catalogs.dat", delim_whitespace=1)
+
+        datagal = 0
+        Ngal = 0
+        pofz = 0
+        status = not (itern<(sourceargs['df'].field.values.size))
+        if status:
+            return datagal, sourceargs, Ngal, status, pofz, 0., 0.
+
+        field = sourceargs["df"].field.values[itern]
+        tract = sourceargs["df"].tract.values[itern]
+        begin = sourceargs["df"].begin.values[itern]
+        end = sourceargs["df"].end.values[itern]
+        
+        # Initialize list of tracts within a given field
+        if begin == 0:
+            # Define the shape catalog file from Rachel to read from for this field
+            if sourceargs["blinded"]:
+                # Decrypt the Delta m value, if sourceargs["dm"] not set already
+                fname = "DataStore/Blinded_S16A_v2.0/%s_blinded_m_%s_%d.fits" % (field, sourceargs["username"], sourceargs["blindnumber"])
+                fname_nom = "DataStore/Blinded_S16A_v2.0/hsc-blind/%s_no_m.fits" % (field)
+                if "dm" not in sourceargs:
+                    try:
+                        hdulist = pyfits.open(fname, memmap=True)
+                        msg = hdulist[0].header["DM1"]
+                        sourceargs['dm'] = float(decrypt_string(FITS_to_PGP(msg)))
+                    except:
+                        print "GPG decryption failed, check your gpg-agent"
+                        exit(12)
+                # The commented line is memory intensive
+                #sourceargs["fits"] = fitsio.FITS("%s[1][col *, ishape_hsm_regauss_derived_shear_bias_m = ishape_hsm_regauss_derived_shear_bias_m - %f ]" % (fname, sourceargs['dm']))[1]
+                # Instead read the file as it is and then subtract off later
+                sourceargs["fits_mblind"] = fitsio.FITS("%s" % (fname))[1]
+                sourceargs["fits"] = fitsio.FITS("%s" % (fname_nom))[1]
+            else:
+                print "Unblinded catalogs not implemented yet for security purposes"
+
+        # Read in the photoz file for the current field, tract
+        hdulist = pyfits.open("DataStore/S16A_v2.0/%s_tracts/%d_pz.fits" % (field, tract))
+        data = hdulist[1].data
+        pofz = data["%s_photoz_best" % (sourceargs['pofz_type']) ]
+        pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<sourceargs['photoz_risk_best_cut'])
+
+        # Read in the shape values for the current field, tract, the row filtering specification indexes rows from 1 - Nrecords
+        wheremask = sourceargs['fits'].where("#row>%d && #row<=%d" % (begin, end))
+
+        #datagal = sourceargs['fits'][1]["ira", "idec", "ishape_hsm_regauss_e1", "ishape_hsm_regauss_e2", "ishape_hsm_regauss_derived_shear_bias_c1", "ishape_hsm_regauss_derived_shear_bias_c2", "ishape_hsm_regauss_derived_shear_bias_m", "ishape_hsm_regauss_derived_shape_weight", "ishape_hsm_regauss_derived_rms_e"][wheremask]
+        #datagal = sourceargs['fits']["ira", "idec", "ishape_hsm_regauss_e1", "ishape_hsm_regauss_e2", "ishape_hsm_regauss_derived_shape_weight", "ishape_hsm_regauss_derived_rms_e", "ishape_hsm_regauss_derived_shear_bias_m", "ishape_hsm_regauss_derived_shear_bias_c1", "ishape_hsm_regauss_derived_shear_bias_c2"][wheremask]
+        ira = sourceargs['fits']["ira"][wheremask]
+        idec = sourceargs['fits']["idec"][wheremask]
+        ishape_hsm_regauss_e1 = sourceargs['fits']["ishape_hsm_regauss_e1"][wheremask]
+        ishape_hsm_regauss_e2 = sourceargs['fits']["ishape_hsm_regauss_e2"][wheremask]
+        ishape_hsm_regauss_derived_shape_weight = sourceargs['fits']["ishape_hsm_regauss_derived_shape_weight"][wheremask]
+        ishape_hsm_regauss_derived_rms_e = sourceargs['fits']["ishape_hsm_regauss_derived_rms_e"][wheremask]
+        ishape_hsm_regauss_derived_shear_bias_m = sourceargs['fits_mblind']["ishape_hsm_regauss_derived_shear_bias_m"][wheremask] - sourceargs["dm"]
+        ishape_hsm_regauss_derived_shear_bias_c1 = sourceargs['fits']["ishape_hsm_regauss_derived_shear_bias_c1"][wheremask]
+        ishape_hsm_regauss_derived_shear_bias_c2 = sourceargs['fits']["ishape_hsm_regauss_derived_shear_bias_c2"][wheremask]
+        datagal = np.array([ira, idec, ishape_hsm_regauss_e1, ishape_hsm_regauss_e2, ishape_hsm_regauss_derived_shape_weight, ishape_hsm_regauss_derived_rms_e, ishape_hsm_regauss_derived_shear_bias_m, ishape_hsm_regauss_derived_shear_bias_c1, ishape_hsm_regauss_derived_shear_bias_c2]).T
+        datagalflag = sourceargs['fits']["weak_lensing_flag"][wheremask]
+
+        sourceargs['iter'] = sourceargs['iter'] + 1
+
+        Ngal = pofzflag.size
+        status = 0
+        
+        return datagal, sourceargs, Ngal, status, pofz, datagalflag, pofzflag
+
+    if sourceargs['type'] == "hsc-wide-s16a_v2.0" and sourceargs['filetype'] == "fits" and  sourceargs["fullpofz"]:
+
+        # This variable iterates over the different fields in the catalog
+        itern = sourceargs['iter']
+        if itern == 0:
+            sourceargs["df"] = pandas.read_csv("DataStore/S16A_v2.0/Mapping_from_Rachel_catalogs_to_Hironao_catalogs.dat", delim_whitespace=1)
+
+        datagal = 0
+        Ngal = 0
+        pofz = 0
+        status = not (itern<(sourceargs['df'].field.values.size))
+        if status:
+            return datagal, sourceargs, Ngal, status, pofz, 0., 0.
+
+        field = sourceargs["df"].field.values[itern]
+        tract = sourceargs["df"].tract.values[itern]
+        begin = sourceargs["df"].begin.values[itern]
+        end = sourceargs["df"].end.values[itern]
+        
+        # Initialize list of tracts within a given field
+        if begin == 0:
+            # Define the shape catalog file from Rachel to read from for this field
+            if sourceargs["blinded"]:
+                # Decrypt the Delta m value, if sourceargs["dm"] not set already
+                fname = "DataStore/Blinded_S16A_v2.0/%s_blinded_m_%s_%d.fits" % (field, sourceargs["username"], sourceargs["blindnumber"])
+                fname_nom = "DataStore/Blinded_S16A_v2.0/hsc-blind/%s_no_m.fits" % (field)
+                if "dm" not in sourceargs:
+                    try:
+                        hdulist = pyfits.open(fname, memmap=True)
+                        msg = hdulist[0].header["DM1"]
+                        sourceargs['dm'] = float(decrypt_string(FITS_to_PGP(msg)))
+                    except:
+                        print "GPG decryption failed, check your gpg-agent"
+                        exit(12)
+                # The commented line is memory intensive
+                #sourceargs["fits"] = fitsio.FITS("%s[1][col *, ishape_hsm_regauss_derived_shear_bias_m = ishape_hsm_regauss_derived_shear_bias_m - %f ]" % (fname, sourceargs['dm']))[1]
+                # Instead read the file as it is and then subtract off later
+                sourceargs["fits_mblind"] = fitsio.FITS("%s" % (fname))[1]
+                sourceargs["fits"] = fitsio.FITS("%s" % (fname_nom))[1]
+            else:
+                print "Unblinded catalogs not implemented yet for security purposes"
+
+        # Read in the photoz file for the current field, tract
+        hdulist = pyfits.open("DataStore/S16A_v2.0/%s_tracts/%d_pz.fits" % (field, tract))
+        data = hdulist[1].data
+        pofz = data["%s_photoz_best" % (sourceargs['pofz_type']) ]
+        pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<sourceargs['photoz_risk_best_cut'])
+
+        # Read in the shape values for the current field, tract
+        wheremask = sourceargs['fits'].where("#row>%d && #row<=%d" % (begin, end))
+
+        #datagal = sourceargs['fits']["ira", "idec", "ishape_hsm_regauss_e1", "ishape_hsm_regauss_e2", "ishape_hsm_regauss_derived_shear_bias_c1", "ishape_hsm_regauss_derived_shear_bias_c2", "ishape_hsm_regauss_derived_shape_weight", "ishape_hsm_regauss_derived_rms_e"][wheremask]
+        #datagalflag = sourceargs['fits'][1]["weak_lensing_flag"][wheremask]
+
+        ira = sourceargs['fits']["ira"][wheremask]
+        idec = sourceargs['fits']["idec"][wheremask]
+        ishape_hsm_regauss_e1 = sourceargs['fits']["ishape_hsm_regauss_e1"][wheremask]
+        ishape_hsm_regauss_e2 = sourceargs['fits']["ishape_hsm_regauss_e2"][wheremask]
+        ishape_hsm_regauss_derived_shape_weight = sourceargs['fits']["ishape_hsm_regauss_derived_shape_weight"][wheremask]
+        ishape_hsm_regauss_derived_rms_e = sourceargs['fits']["ishape_hsm_regauss_derived_rms_e"][wheremask]
+        ishape_hsm_regauss_derived_shear_bias_m = sourceargs['fits_mblind']["ishape_hsm_regauss_derived_shear_bias_m"][wheremask] - sourceargs["dm"]
+        ishape_hsm_regauss_derived_shear_bias_c1 = sourceargs['fits']["ishape_hsm_regauss_derived_shear_bias_c1"][wheremask]
+        ishape_hsm_regauss_derived_shear_bias_c2 = sourceargs['fits']["ishape_hsm_regauss_derived_shear_bias_c2"][wheremask]
+        datagal = np.array([ira, idec, ishape_hsm_regauss_e1, ishape_hsm_regauss_e2, ishape_hsm_regauss_derived_shape_weight, ishape_hsm_regauss_derived_rms_e, ishape_hsm_regauss_derived_shear_bias_m, ishape_hsm_regauss_derived_shear_bias_c1, ishape_hsm_regauss_derived_shear_bias_c2]).T
+        datagalflag = sourceargs['fits']["weak_lensing_flag"][wheremask]
+
+        sourceargs['fitspofz'] = fitsio.FITS("DataStore/S16A_v2.0/%s_tracts/%d_pz_pdf_%s.fits" % (field, tract, sourceargs['pofz_type']))[1]
+
+        pofz = sourceargs['fitspofz']['P(z)'][:]
+        pofz = pofz.reshape((pofz.shape[0], -1,))
+
+        sourceargs['iter'] = sourceargs['iter'] + 1
+        Ngal = pofzflag.size
+        status = 0
+
+        return datagal, sourceargs, Ngal, status, pofz, datagalflag, pofzflag
+
+
+    # S16A_v2.0 kept here for notes when required. This was before Rachel computed the calibration factors
+    if sourceargs['type'] == "hsc-wide-s16a_v2.0_old" and sourceargs['filetype'] == "fits" and not sourceargs["fullpofz"]:
 
         itern = sourceargs['iter']
         if itern == 0:
@@ -512,17 +753,19 @@ def source_select(sourceargs, chunksize):
         zeroarr = ishape_hsm_regauss_derived_bias_c1 * 0.0
         datagalflag = data["weak_lensing_flag"]
 
-        datagal = np.array([ira, idec, ishape_hsm_regauss_e1, ishape_hsm_regauss_e2, ishape_hsm_regauss_derived_weight, ishape_hsm_regauss_derived_rms_e, ishape_hsm_regauss_derived_bias_m, ishape_hsm_regauss_derived_bias_c1, ishape_hsm_regauss_derived_bias_c2, zeroarr, zeroarr]).T
+        datagal = np.array([ira, idec, ishape_hsm_regauss_e1, ishape_hsm_regauss_e2, ishape_hsm_regauss_derived_weight, ishape_hsm_regauss_derived_rms_e, ishape_hsm_regauss_derived_bias_m, ishape_hsm_regauss_derived_bias_c1, ishape_hsm_regauss_derived_bias_c2]).T
 
         hdulist = pyfits.open(sourceargs['fits_list'][itern])
         data = hdulist[1].data
         pofz = data["%s_photoz_best" % (sourceargs['pofz_type']) ]
-        pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<0.5)
+        pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<sourceargs['photoz_risk_best_cut'])
 
         sourceargs['iter'] = sourceargs['iter'] + 1
         Ngal = pofz.size
         status = 0
+        return datagal, sourceargs, Ngal, status, pofz, datagalflag, pofzflag
 
+    '''
     if sourceargs['type'] == "hsc-wide-s16a_v2.0" and sourceargs['filetype'] == "fits" and  sourceargs["fullpofz"]:
         itern = sourceargs['iter']
         if itern == 0:
@@ -661,7 +904,7 @@ def source_select(sourceargs, chunksize):
 
     return datagal, sourceargs, Ngal, status, pofz, datagalflag, pofzflag
 
-    '''
+    # S15B v2.1 kept here for notes
     if sourceargs['type'] == "hsc-wide" and sourceargs['filetype'] == "fits" and  sourceargs["fullpofz"]:
         itern = sourceargs['iter']
         if itern == 0:
