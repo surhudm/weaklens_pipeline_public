@@ -115,9 +115,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--config", help="Configuration file")
-    parser.add_argument("--rmax", help="Max radius", type=float, default=80.0)
-    parser.add_argument("--rmin", help="Min radius", type=float, default=0.5)
-    parser.add_argument("--rbin", help="Radial bin", type=int, default=25)
+    parser.add_argument("--rmax", help="Max radius, does not override the value in config file", type=float, default=80.0)
+    parser.add_argument("--rmin", help="Min radius, does not override the value in config file", type=float, default=0.5)
+    parser.add_argument("--rbin", help="Radial bin, does not override the value in config file", type=int, default=25)
     
     args = parser.parse_args()
     
