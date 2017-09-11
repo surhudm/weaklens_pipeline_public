@@ -249,6 +249,10 @@ int weaklens::finalize_lenses()
 int weaklens::test_searchrecord(){
 }
 
+int weaklens::process_source(double sra, double sdec, double se1, double se2, double swt, double srms_e, double smcat, double sc1_dp, double sc2_dp, double szbest, bool usepdf=false){
+    process_source( sra,  sdec,  se1,  se2,  swt,  srms_e,  smcat,  sc1_dp,  sc2_dp, 0.0, 0.0, szbest, usepdf);
+}
+
 int weaklens::process_source(double sra, double sdec, double se1, double se2, double swt, double srms_e, double smcat, double sc1_dp, double sc2_dp, double sc1_nb, double sc2_nb, double szbest, bool usepdf=false)
 {
 
