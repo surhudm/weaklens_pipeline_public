@@ -85,9 +85,6 @@ def run_pipeline(config, verbose=0):
                         ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp = datagal[i]
                         c1_nb = 0.0
                         c2_nb = 0.0
-                        # Remove Delta m1, this is set in source_select the first time any blinded/unblinded catalog is read
-                        if sourceargs["blinded"]:
-                            mgal = mgal - sourceargs['dm']
                     zphotgal = 0.0
                     e1gal = np.double(e1gal)
                     e2gal = -np.double(e2gal)
