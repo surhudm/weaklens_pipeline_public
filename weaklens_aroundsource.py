@@ -12,7 +12,7 @@ import yaml
 from weaklens_select import lens_select, source_select, get_pofz_array
 
 
-def run_pipeline(config):
+def run_pipeline(config, verbose=0):
     # Convert arguments to variables
     rmax = config["rmax"]
     rmin = config["rmin"]
@@ -23,7 +23,7 @@ def run_pipeline(config):
     call("mkdir -p %s" % (config["outputdir"]), shell=1)
     # call("cp %s %s/" % (ymlfile, config["outputdir"]), shell=1)
     
-    wpipe = weaklens.weaklens(rmin, rmax, rbin, pairout, False)
+    wpipe = weaklens.weaklens(rmin, rmax, rbin, pairout, False, config["Omegam"])
     
     # First get all the lens galaxy data
     print config["lens"]
@@ -43,23 +43,17 @@ def run_pipeline(config):
     
     if sourceargs["fullpofz"]:
         print "Setting up P(z)"
-    ####wpipe.setup_pofz(sourceargs["pofz_zmin"], sourceargs["pofz_zdiff"], sourceargs["pofz_zbins"])
         pofz_zz = get_pofz_array(sourceargs).astype("float32")
         wpipe.setup_pofz_array(pofz_zz)
-        ## print pofz_zz.size
-        ## pofz_zz_arr = wpipe.doubleArray(pofz_zz.size)
-        ## for i in range(pofz_zz.size):
-        ##     print i, pofz_zz[i]
-        ##     pofz_zz_arr[i] = pofz_zz[i]
-    
-    #### try:
-    ####     fout = open("Test_%s" % sourceargs["pofz_type"], "w")
-    #### except:
-    ####     fout = open("Test_debug", "w")
+        if verbose:
+            print pofz_zz.size
+            pofz_zz_arr = wpipe.doubleArray(pofz_zz.size)
+            for i in range(pofz_zz.size):
+                print i, pofz_zz[i]
+                pofz_zz_arr[i] = pofz_zz[i]
     
     while not done:
         itern = itern + 1
-        #datagal, sourceargs, Ngal, status, pofz = source_select(sourceargs, chunksize=1000000)
         datagal, sourceargs, Ngal, status, pofz, datagalflag, pofzflag = source_select(sourceargs, chunksize=1000000)
     
         if status!=0 :
@@ -67,7 +61,8 @@ def run_pipeline(config):
         else:
             print "\n", datagalflag.size, pofzflag.size
     
-    
+        
+        # Uncomment the following two rows for debugging purposes: 
         # if itern==2:
         #     break
     
@@ -81,39 +76,23 @@ def run_pipeline(config):
         for i in range(Ngal):
             if not datagalflag[i] or not pofzflag[i]:
                 continue
-        #for i in range(Ngal):
-        #for i in range(10):
     
             if sourceargs['filetype'] == "fits":
                 if sourceargs['include_corrections']:
-                    ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb = datagal[i]
+                    if sourceargs['format'] == "des":
+                        ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb = datagal[i]
+                    elif sourceargs["format"] == "hsc":
+                        ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp = datagal[i]
+                        c1_nb = 0.0
+                        c2_nb = 0.0
+                        # Remove Delta m1, this is set in source_select the first time any blinded/unblinded catalog is read
+                        if sourceargs["blinded"]:
+                            mgal = mgal - sourceargs['dm']
                     zphotgal = 0.0
-                    e2gal = -e2gal
+                    e1gal = np.double(e1gal)
+                    e2gal = -np.double(e2gal)
                     c2_dp = -c2_dp
                     c2_nb = -c2_nb
-                else:
-                    ragal, decgal, e1gal, e2gal, wgal, rms_egal = datagal[i]
-                    if sourceargs['type'] != "hsc-wide-josh":
-                        #print "\nbefore:", ragal, decgal, e1gal, e2gal, wgal
-                        wgal = 1./(0.365**2+wgal**2)
-                        e2gal = -e2gal
-                        #print "\nafter:", ragal, decgal, e1gal, e2gal, wgal
-                    e1gal = np.float64(e1gal)
-                    e2gal = np.float64(e2gal)
-                    mgal = 0.0*ragal
-                    c1_dp = 0.0*ragal
-                    c2_dp = 0.0*ragal
-                    c1_nb = 0.0*ragal
-                    c2_nb = 0.0*ragal
-                    zphotgal = 0.0*ragal
-                    rms_egal = np.float64(rms_egal)
-                    #print ragal, decgal, e1gal, e2gal, wgal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal
-    
-            elif sourceargs['filetype'] == "ascii" and sourceargs['type'] == "alexie-test":
-                ragal, decgal, zphotgal, e1gal, e2gal, wgal = datagal.ra.values[i], datagal.dec.values[i], datagal.z_b.values[i],datagal.e1.values[i],datagal.e2.values[i],datagal.weight.values[i]
-                e2gal = -e2gal
-                mgal, c1_dp, c2_dp, c1_nb, c2_nb = ragal*0.0, ragal*0.0, ragal*0.0, ragal*0.0, ragal*0.0
-                rms_egal = ragal*0.0+1./np.sqrt(2.)
                 
             elif sourceargs['filetype'] == "ascii":
                 ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal = datagal.ra.values[i], datagal.dec.values[i], datagal.e1.values[i],datagal.e2.values[i],datagal.weight.values[i],datagal.m.values[i],datagal.c1_dp.values[i],datagal.c2_dp.values[i],datagal.c1_nb.values[i],datagal.c2_nb.values[i],datagal.z_b.values[i]
@@ -149,11 +128,14 @@ if __name__ == "__main__":
         config = yaml.load(ymlfile)
     print config
 
-    config["rmax"] = args.rmax
-    config["rmin"] = args.rmin
-    config["rbin"] = args.rbin
 
-    if "Omegam" in config.keys:
+    if "rmax" not in config:
+        config["rmax"] = args.rmax
+    if "rmin" not in config:
+        config["rmin"] = args.rmin
+    if "rbin" not in config:
+        config["rbin"] = args.rbin
+    if "Omegam" not in config:
         config["Omegam"] = 0.279
 
 
