@@ -611,7 +611,10 @@ def source_select(sourceargs, chunksize):
                 sourceargs["fits_mblind"] = fitsio.FITS("%s" % (fname))[1]
                 sourceargs["fits"] = fitsio.FITS("%s" % (fname_nom))[1]
             else:
-                print "Unblinded catalogs not implemented yet for security purposes"
+                fname = "DataStore/Calibrated_S16A_v2.0/%s_calibrated.fits" % (field)
+                sourceargs["fits"] = fitsio.FITS("%s" % (fname))[1]
+                sourceargs["fits_mblind"] = fitsio.FITS("%s" % (fname))[1]
+                sourceargs["dm"] = 0.0
 
         # Read in the photoz file for the current field, tract
         hdulist = pyfits.open("DataStore/S16A_v2.0/%s_tracts/%d_pz.fits" % (field, tract))
@@ -683,7 +686,10 @@ def source_select(sourceargs, chunksize):
                 sourceargs["fits_mblind"] = fitsio.FITS("%s" % (fname))[1]
                 sourceargs["fits"] = fitsio.FITS("%s" % (fname_nom))[1]
             else:
-                print "Unblinded catalogs not implemented yet for security purposes"
+                fname = "DataStore/Calibrated_S16A_v2.0/%s_calibrated.fits" % (field)
+                sourceargs["fits"] = fitsio.FITS("%s" % (fname))[1]
+                sourceargs["fits_mblind"] = fitsio.FITS("%s" % (fname))[1]
+                sourceargs["dm"] = 0.0
 
         # Read in the photoz file for the current field, tract
         hdulist = pyfits.open("DataStore/S16A_v2.0/%s_tracts/%d_pz.fits" % (field, tract))
