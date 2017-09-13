@@ -379,6 +379,8 @@ int weaklens::finalize_results(){
         double rrmin = pow(10., logrmin + i*logrdiff);
         double rrmax = pow(10., logrmin + (i+1)*logrdiff);
         double Resp = sumwls_resp[i]/sumwls[i];
+        /// These outputs should be pruned for clarity
+        fprintf(fout, "# 0:bincenter 1:Deltasigma_num 2:Sumwls 3:Sumwlsms 4:SumwlsResp 5:DeltaSigma 6:Sumwls_by_sumwl 7:rmin/2+rmax/2 8:DeltaSigma_cross 9:Sum_srcwt_per_lens 10:TotalSum_srcwt 11:SN_ErrDeltaSigma 12:SN_ErrDeltaSigma_cross 13:Total_pairs\n");
         fprintf(fout, "%e %le %le %le %le %le %le %e %le %le %le %le %le %le \n", rr, sumdsig_num[i], sumwls[i], sumwls_ms[i], sumwls_resp[i], sumdsig_num[i]/sumwls_ms[i]/2./Resp, sumwls[i]/sumwl, rrmin/2+rrmax/2, sumdcross_num[i]/sumwls_ms[i]/2./Resp, sumdcount_num[i]/sumwl, sumdcount_num[i], sqrt(sumdsigsq_num[i])/sumwls_ms[i]/2./Resp, sqrt(sumdcrosssq_num[i])/sumwls_ms[i]/2./Resp, sumpairs[i]);
     }
     fclose(fout);
