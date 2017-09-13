@@ -19,6 +19,36 @@ given radial bins. This allows the code to be very memory efficient as the full
 p(z) distribution need not be stored in the memory. There are also less cache
 misses.
 
+# Data directory organization
+
+## For the calibrated/unblinded catalogs
+
+```
+mkdir -p DataStore/Calibrated_S16A_v2.0/
+cd DataStore/Calibrated_S16A_v2.0/
+
+# Download zip file from https://cmu.app.box.com/shared/static/y3pdl0v8952ddairx59eo2a2f09kfwkh and unzip in this directory
+
+```
+The filenames in this directory will be of the type: `fieldname_calibrated.fits`
+
+## For the blinded catalogs
+
+```
+mkdir -p DataStore/Blinded_S16A_v2.0/
+cd DataStore/Blinded_S16A_v2.0/
+
+# Download zip file from link given by Rachel and unzip in this directory
+
+```
+The filenames in this directory will be of the type: `fieldname_no_m.fits` and `fieldname_blinded_m_username_[012].fits`
+
+## The source P(z) and PDF
+
+For convenience Hironao has made the photozs and the photoz pdfs for sources available. Download them from http://master.ipmu.jp/~miyatake/shape_catalog/S16A_v2.0
+
+Dump them as they are in the directory `DataStore/S16A_v2.0`
+
 # Sample configuration file
 ```
 # Matter density
@@ -61,3 +91,4 @@ source:
 ```
 python weaklens_aroundsource.py --config configfile
 ```
+
