@@ -17,13 +17,18 @@ def run_pipeline(config, verbose=0):
     rmax = config["rmax"]
     rmin = config["rmin"]
     rbin = config["rbin"]
-    pairout = config["outputdir"] + "/pairs.dat"
+    pairout = config["outputdir"] + "/Dsigma.dat"
+
+    if "outputpairfile" not in config:
+        config["outputpairfile"] = ""
+    else:
+        config["outputpairfile"] = config["outputdir"] + "/" + config["outputpairfile"]
     
     from subprocess import call
     call("mkdir -p %s" % (config["outputdir"]), shell=1)
     # call("cp %s %s/" % (ymlfile, config["outputdir"]), shell=1)
     
-    wpipe = weaklens.weaklens(rmin, rmax, rbin, pairout, False, config["Omegam"])
+    wpipe = weaklens.weaklens(rmin, rmax, rbin, pairout, False, config["Omegam"], config["outputpairfile"])
     
     # First get all the lens galaxy data
     print config["lens"]

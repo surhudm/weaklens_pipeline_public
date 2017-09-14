@@ -596,7 +596,7 @@ def source_select(sourceargs, chunksize):
             if sourceargs["blinded"]:
                 # Decrypt the Delta m value, if sourceargs["dm"] not set already
                 fname = "DataStore/Blinded_S16A_v2.0/%s_blinded_m_%s_%d.fits" % (field, sourceargs["username"], sourceargs["blindnumber"])
-                fname_nom = "DataStore/Blinded_S16A_v2.0/hsc-blind/%s_no_m.fits" % (field)
+                fname_nom = "DataStore/Blinded_S16A_v2.0/%s_no_m.fits" % (field)
                 if "dm" not in sourceargs:
                     try:
                         hdulist = pyfits.open(fname, memmap=True)
@@ -671,7 +671,7 @@ def source_select(sourceargs, chunksize):
             if sourceargs["blinded"]:
                 # Decrypt the Delta m value, if sourceargs["dm"] not set already
                 fname = "DataStore/Blinded_S16A_v2.0/%s_blinded_m_%s_%d.fits" % (field, sourceargs["username"], sourceargs["blindnumber"])
-                fname_nom = "DataStore/Blinded_S16A_v2.0/hsc-blind/%s_no_m.fits" % (field)
+                fname_nom = "DataStore/Blinded_S16A_v2.0/%s_no_m.fits" % (field)
                 if "dm" not in sourceargs:
                     try:
                         hdulist = pyfits.open(fname, memmap=True)

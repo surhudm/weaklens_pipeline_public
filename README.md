@@ -59,6 +59,8 @@ outputdir: camira/mizuki/zbest_0.70_1.20_10.0_1000.0
 rbin: 20
 rmax: 20.0
 rmin: 0.1
+# Whether to output lens source pair information
+outputpairfile : "allpairs.dat"
 # Lens configuration (to be used in weaklens_select.py:lens_select)
 lens:
   hsc-release: s16a

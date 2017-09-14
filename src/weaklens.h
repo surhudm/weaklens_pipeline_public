@@ -35,12 +35,13 @@ class weaklens
         double zredmin, zredmax, Dcommin;
         double *sumdsig_num, *sumdcross_num, *sumdcount_num, *sumwls, *sumwls_ms, *sumdsigsq_num, *sumdcrosssq_num, *sumwls_resp, *sumpairs;
         double sumwl;
-        char outfile[1000];
+        char outfile[10000];
         boost::timer *timer;
         long int Niter;
         bool lenses_alloc, lenses_finalized;
         array1ddouble xper;
         int dim;
+        FILE *foutput_lens_source_pairs;
 
         // The spline for inverse sigmacritical
         bool bool_init_sigcritinv;
@@ -58,7 +59,7 @@ class weaklens
     public:
         kdtree2::KDTree *tree;
         weaklens();
-        weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool xverbose, double Omegam);
+        weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool xverbose, double Omegam, char *output_lens_source_pairs);
         ~weaklens();
         int allocate_lens_memory(int xNcen);
         int process_lens(double xra, double xdec, double xzred, double xwt);

@@ -10,6 +10,7 @@ weaklens::weaklens()
     logrmax=log10(rmax);
     logrdiff=(logrmax-logrmin)/rbins;
     sprintf(outfile, "Debug.dat");
+    foutput_lens_source_pairs=NULL;
     verbose=true;
 
     sumdsig_num = (double *)calloc(rbins,sizeof(double));
@@ -44,7 +45,7 @@ weaklens::weaklens()
 
 }
 
-weaklens::weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool xverbose, double xOmegam=0.279)
+weaklens::weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool xverbose, double xOmegam=0.279, char *output_lens_source_pairs=(char *)"")
 {
     rmin=xrmin;
     rmax=xrmax;
@@ -54,6 +55,11 @@ weaklens::weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool 
     logrmax=log10(rmax);
     logrdiff=(logrmax-logrmin)/rbins;
     sprintf(outfile, "%s", xoutfile);
+    if (strcmp(output_lens_source_pairs, (char *)"")){
+        foutput_lens_source_pairs=fopen(output_lens_source_pairs, "w");
+    }else{
+        foutput_lens_source_pairs=NULL;
+    }
 
     sumdsig_num = (double *)calloc(rbins,sizeof(double));
     sumdcross_num = (double *)calloc(rbins,sizeof(double));
@@ -145,6 +151,9 @@ weaklens::~weaklens(){
         delete [] pz_pofz;
         pz_alloc = false;
     }
+    if (foutput_lens_source_pairs=NULL){
+       fclose(foutput_lens_source_pairs);
+    }
 }
 
 int weaklens::allocate_lens_memory(int xNcen)
@@ -176,10 +185,10 @@ int weaklens::process_lens(double xra, double xdec, double xzred, double xwt)
         return 1;
     }
     
-    xra = xra*M_PI/180.;
-    xdec = xdec*M_PI/180.;
     ra     [Nfill] = xra; 
     dec    [Nfill] = xdec;
+    xra = xra*M_PI/180.;
+    xdec = xdec*M_PI/180.;
     zred   [Nfill] = xzred;
     wt     [Nfill] = xwt;
     c_lra  [Nfill] = cos(xra);
@@ -336,6 +345,14 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
         // This checks out with Hironao's code as well, with our sinphi = - sinphi from Hironao.
         double etan=-se1*(2*cosphi*cosphi-1)+se2*(2*sinphi*cosphi);
         double ecross=se2*(2*cosphi*cosphi-1)+se1*(2*sinphi*cosphi);
+ 
+        // Test if we want to output all the lens source pairs
+        // We shall output for every pair: Lens_num, lens_ra, lens_dec, r, etan, ecross, wt[xx], swt, av_sigc_inv, 1+smcat, 1-srms_e**2
+        if (foutput_lens_source_pairs!=NULL){
+            fprintf(foutput_lens_source_pairs, "%d %.7e %.7e %.7e %.7e %.7e %.7e %.7e %.7e %.7e %.7e\n", xx, ra[xx], dec[xx], dis2*Dcom[xx], etan, ecross, wt[xx], swt, av_sigc_inv, 1+smcat, 1-srms_e*srms_e);
+        }/*else{
+            fprintf(stderr, "Wont print as foutput is NULL\n");
+        }*/
         
         if (std::isnan(etan) || std::isnan(ecross))
              continue;
@@ -373,6 +390,7 @@ int weaklens::finalize_results(){
     fprintf(stderr, "%e %e %e\n", logrmin, logrmax, logrdiff);
     FILE *fout=fopen(outfile, "w");
 
+    fprintf(fout, "# 0:bincenter 1:Deltasigma_num 2:Sumwls 3:Sumwlsms 4:SumwlsResp 5:DeltaSigma 6:Sumwls_by_sumwl 7:rmin/2+rmax/2 8:DeltaSigma_cross 9:Sum_srcwt_per_lens 10:TotalSum_srcwt 11:SN_ErrDeltaSigma 12:SN_ErrDeltaSigma_cross 13:Total_pairs\n");
     for (int i=0;i<rbins;i++)
     {
         double rr = logrmin + (i+0.5)*logrdiff;
@@ -380,7 +398,6 @@ int weaklens::finalize_results(){
         double rrmax = pow(10., logrmin + (i+1)*logrdiff);
         double Resp = sumwls_resp[i]/sumwls[i];
         /// These outputs should be pruned for clarity
-        fprintf(fout, "# 0:bincenter 1:Deltasigma_num 2:Sumwls 3:Sumwlsms 4:SumwlsResp 5:DeltaSigma 6:Sumwls_by_sumwl 7:rmin/2+rmax/2 8:DeltaSigma_cross 9:Sum_srcwt_per_lens 10:TotalSum_srcwt 11:SN_ErrDeltaSigma 12:SN_ErrDeltaSigma_cross 13:Total_pairs\n");
         fprintf(fout, "%e %le %le %le %le %le %le %e %le %le %le %le %le %le \n", rr, sumdsig_num[i], sumwls[i], sumwls_ms[i], sumwls_resp[i], sumdsig_num[i]/sumwls_ms[i]/2./Resp, sumwls[i]/sumwl, rrmin/2+rrmax/2, sumdcross_num[i]/sumwls_ms[i]/2./Resp, sumdcount_num[i]/sumwl, sumdcount_num[i], sqrt(sumdsigsq_num[i])/sumwls_ms[i]/2./Resp, sqrt(sumdcrosssq_num[i])/sumwls_ms[i]/2./Resp, sumpairs[i]);
     }
     fclose(fout);

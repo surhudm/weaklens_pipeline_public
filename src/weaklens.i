@@ -29,17 +29,18 @@ import_array();
 -   xoutfile : The output file
 -   xverbose : Boolean parameter for verbosity
 -   xOmegam : Matter density parameter
+-   output_lens_source_pairs : File to output lens source pair information to
 
 :Returns:
 
 -   Weaklens object
 
-    Without any inputs, initializes to the default rmin=0.5, rmax=15.0, rbins=15, verbose=True, outfile=Debug.dat, Omegam=0.279.
+    Without any inputs, initializes to the default rmin=0.5, rmax=15.0, rbins=15, verbose=True, outfile=Debug.dat, Omegam=0.279, output_lens_source_pairs=""
 
 :Examples:
 
 >>> import weaklens as wl
->>> a = wl.weaklens(0.5, 15.0, 15, 'Debug.dat', true, 0.279)
+>>> a = wl.weaklens(0.5, 15.0, 15, 'Debug.dat', true, 0.279, 'allpairs.dat')
 >>> help(a)
 
 "
