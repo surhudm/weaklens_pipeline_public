@@ -115,4 +115,10 @@ http://master.ipmu.jp/~miyatake/shape_catalog/S16A_v2.0/Mapping_from_Rachel_cata
 http://master.ipmu.jp/~miyatake/shape_catalog/S16A_v2.0/Mapping_from_Rachel_catalogs_to_Hironao_catalogs.dat.calibrated
 ```
 
-3) See the .circleci files for the configuration which works
+3) See the .circleci files for the configuration which works in order to
+compile the code. There are requirements for the python code mentioned in
+requirements.txt. They can be installed to a local directory with:
+
+```
+pip install --user -r requirements.txt
+```
