@@ -30,8 +30,8 @@ jobs:
       - run:
           name: install dependencies
           command: |
-            apt-get -y -qq update
-            apt-get -y -qq install libgsl0ldbl libgsl0-dbg libgsl0-dev python python-scipy python-numpy libboost swig
+            sudo apt-get -y -qq update
+            sudo apt-get -y -qq install libgsl0ldbl libgsl0-dbg libgsl0-dev python python-scipy python-numpy libboost swig
             python -m venv venv
             . venv/bin/activate
             pip install -r requirements.txt
