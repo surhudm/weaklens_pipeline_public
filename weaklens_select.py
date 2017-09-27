@@ -52,6 +52,29 @@ def lens_select(lensargs):
     
     Add new samples by copy pasting one of the lensargs block and then modifying them according to your will
     """
+    if lensargs["type"] == "generic":
+        hdulist = pyfits.open(lensargs["fname"])
+        data = hdulist[1].data
+        ra = data["ra"].astype("float64")
+        dec = data["dec"].astype("float64")
+        z = data["z"].astype("float64")
+        wt = data["wt"].astype("float64")
+         
+        sys.stdout.write("Selecting %d samples \n" % (ra.size))
+
+        return ra, dec, z, wt
+
+    if lensargs["type"] == "generic-text":
+        data = pandas.read_csv(lensargs["fname"], delim_whitespace=1)
+        ra = data["ra"].astype("float64")
+        dec = data["dec"].astype("float64")
+        z = data["z"].astype("float64")
+        wt = data["wt"].astype("float64")
+         
+        sys.stdout.write("Selecting %d samples \n" % (ra.size))
+
+        return ra, dec, z, wt
+
     if lensargs["type"] == "mgii-absorbers-ran":
         hdulist = pyfits.open("DataStore/INFO_140303_Ref_Mg_II_DR79_match.fits")
         data = hdulist[1].data
@@ -576,7 +599,10 @@ def source_select(sourceargs, chunksize):
         # This variable iterates over the different fields in the catalog
         itern = sourceargs['iter']
         if itern == 0:
-            sourceargs["df"] = pandas.read_csv("DataStore/S16A_v2.0/Mapping_from_Rachel_catalogs_to_Hironao_catalogs.dat", delim_whitespace=1)
+            if not sourceargs["blinded"]:
+                sourceargs["df"] = pandas.read_csv("DataStore/S16A_v2.0/Mapping_from_Rachel_catalogs_to_Hironao_catalogs.dat.calibrated", delim_whitespace=1)
+            else:
+                sourceargs["df"] = pandas.read_csv("DataStore/S16A_v2.0/Mapping_from_Rachel_catalogs_to_Hironao_catalogs.dat", delim_whitespace=1)
 
         datagal = 0
         Ngal = 0
@@ -651,7 +677,10 @@ def source_select(sourceargs, chunksize):
         # This variable iterates over the different fields in the catalog
         itern = sourceargs['iter']
         if itern == 0:
-            sourceargs["df"] = pandas.read_csv("DataStore/S16A_v2.0/Mapping_from_Rachel_catalogs_to_Hironao_catalogs.dat", delim_whitespace=1)
+            if not sourceargs["blinded"]:
+                sourceargs["df"] = pandas.read_csv("DataStore/S16A_v2.0/Mapping_from_Rachel_catalogs_to_Hironao_catalogs.dat.calibrated", delim_whitespace=1)
+            else:
+                sourceargs["df"] = pandas.read_csv("DataStore/S16A_v2.0/Mapping_from_Rachel_catalogs_to_Hironao_catalogs.dat", delim_whitespace=1)
 
         datagal = 0
         Ngal = 0

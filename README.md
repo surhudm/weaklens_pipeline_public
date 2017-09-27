@@ -94,3 +94,23 @@ source:
 python weaklens_aroundsource.py --config configfile
 ```
 
+# FAQ:
+
+1) `python setup.py install` fails complaining :
+
+```
+src/gauleg.cpp:9: error: ‘gsl_integration_glfixed_table’ was not declared in this scope
+```
+
+Please install `gsl>=v1.14` and then retry. In case you have multiple versions of gsl installed, then try:
+
+```
+CPPFLAGS=-I/path/to/gsl/include python setup.py install
+```
+
+2) You do not have the mapping from Rachel to Hironao's catalogs. These can be downloaded now from:
+
+```
+http://master.ipmu.jp/~miyatake/shape_catalog/S16A_v2.0/Mapping_from_Rachel_catalogs_to_Hironao_catalogs.dat
+http://master.ipmu.jp/~miyatake/shape_catalog/S16A_v2.0/Mapping_from_Rachel_catalogs_to_Hironao_catalogs.dat.calibrated
+```
