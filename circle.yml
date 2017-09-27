@@ -1,0 +1,8 @@
+dependencies:
+  override:
+    - sudo apt-get update
+    - sudo apt-get install libgsl0dbl libgsl0-dev libgsl0-dbg swig python python-numpy python-scipy python-matplotlib
+
+test:
+  override:
+    - python setup.py install --prefix=`pwd`/install
