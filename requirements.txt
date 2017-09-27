@@ -1,6 +1,1 @@
-numpy
-scipy
 frogress
-pandas
-fitsio
-pyfits
