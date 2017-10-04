@@ -27,7 +27,7 @@ misses.
 mkdir -p DataStore/Calibrated_S16A_v2.0/
 cd DataStore/Calibrated_S16A_v2.0/
 
-# Download zip file from https://cmu.app.box.com/shared/static/y3pdl0v8952ddairx59eo2a2f09kfwkh and unzip in this directory
+# Download zip file from https://cmu.app.box.com/s/y3pdl0v8952ddairx59eo2a2f09kfwkh and unzip in this directory
 
 ```
 The filenames in this directory will be of the type: `fieldname_calibrated.fits`
