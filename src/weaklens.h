@@ -48,7 +48,7 @@ class weaklens
         gsl_interp_accel *sigcritinv_acc;
         gsl_spline *sigcritinv_spline;
         int Npz;
-        double *pz_xz, *pz_chiz, *pz_fac, *pz_pofz;
+        double *pz_xz, *pz_chiz, *pz_fac, *pz_pofz, *current_src_pofz;
         double Nphotgal;
         bool pz_alloc;
 
@@ -64,12 +64,13 @@ class weaklens
         int allocate_lens_memory(int xNcen);
         int process_lens(double xra, double xdec, double xzred, double xwt);
         int finalize_lenses();
-        int process_source(double sra, double sdec, double se1, double se2, double swt, double srms_e, double smcat, double sc1_dp, double sc2_dp, double sc1_nb, double sc2_nb, double szbest, bool usepdf);
-        int process_source(double sra, double sdec, double se1, double se2, double swt, double srms_e, double smcat, double sc1_dp, double sc2_dp, double szbest, bool usepdf);
+        int process_source(double sra, double sdec, double se1, double se2, double swt, double srms_e, double smcat, double sc1_dp, double sc2_dp, double sc1_nb, double sc2_nb, double szbest, bool usepdf, double integral_cut_zl, double integral_cut_zdiff, double integral_cut_Pth, double integral_cut_zmax);
+        int process_source(double sra, double sdec, double se1, double se2, double swt, double srms_e, double smcat, double sc1_dp, double sc2_dp, double szbest, bool usepdf, double integral_cut_zl, double integral_cut_zdiff, double integral_cut_Pth, double integral_cut_zmax);
         int setup_pofz(double pofz_zmin, double pofz_zdiff, int xNpz);
         int setup_pofz_array(double *pofz_zz, int xNpz);
         int process_pofz(double *pofz, int zbins);
         int add_pofz(double *pofz, int zbins);
+        double integrate_pofz(double zmin, double zmax);
         double sigmacritinverse(double zlens);
         int finalize_results();
         int finalize_pofz();
