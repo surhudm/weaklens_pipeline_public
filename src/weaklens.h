@@ -59,13 +59,13 @@ class weaklens
     public:
         kdtree2::KDTree *tree;
         weaklens();
-        weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool xverbose, double Omegam, char *output_lens_source_pairs);
+        weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool xverbose, double Omegam=0.279, char *output_lens_source_pairs=(char *)"");
         ~weaklens();
         int allocate_lens_memory(int xNcen);
         int process_lens(double xra, double xdec, double xzred, double xwt);
         int finalize_lenses();
-        int process_source(double sra, double sdec, double se1, double se2, double swt, double srms_e, double smcat, double sc1_dp, double sc2_dp, double sc1_nb, double sc2_nb, double szbest, bool usepdf, double integral_cut_zl, double integral_cut_zdiff, double integral_cut_Pth, double integral_cut_zmax);
-        int process_source(double sra, double sdec, double se1, double se2, double swt, double srms_e, double smcat, double sc1_dp, double sc2_dp, double szbest, bool usepdf, double integral_cut_zl, double integral_cut_zdiff, double integral_cut_Pth, double integral_cut_zmax);
+        int process_source(double sra, double sdec, double se1, double se2, double swt, double srms_e, double smcat, double sc1_dp, double sc2_dp, double sc1_nb, double sc2_nb, double szbest, bool usepdf=false, double integral_cut_zl=-99.0, double integral_cut_zdiff=0.0, double integral_cut_Pth=0.0, double integral_cut_zmax=99.0);
+        int process_source(double sra, double sdec, double se1, double se2, double swt, double srms_e, double smcat, double sc1_dp, double sc2_dp, double szbest, bool usepdf=false, double integral_cut_zl=-99.0, double integral_cut_zdiff=0.0, double integral_cut_Pth=0.0, double integral_cut_zmax=99.0);
         int setup_pofz(double pofz_zmin, double pofz_zdiff, int xNpz);
         int setup_pofz_array(double *pofz_zz, int xNpz);
         int process_pofz(double *pofz, int zbins);

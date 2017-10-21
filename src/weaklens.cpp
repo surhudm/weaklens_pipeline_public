@@ -45,7 +45,7 @@ weaklens::weaklens()
 
 }
 
-weaklens::weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool xverbose, double xOmegam=0.279, char *output_lens_source_pairs=(char *)"")
+weaklens::weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool xverbose, double xOmegam, char *output_lens_source_pairs)
 {
     rmin=xrmin;
     rmax=xrmax;
@@ -259,12 +259,15 @@ int weaklens::finalize_lenses()
 int weaklens::test_searchrecord(){
 }
 
-int weaklens::process_source(double sra, double sdec, double se1, double se2, double swt, double srms_e, double smcat, double sc1_dp, double sc2_dp, double szbest, bool usepdf=false, double integral_cut_zl=-99.0, double integral_cut_zdiff=0.0, double integral_cut_Pth=0.0, double integral_cut_zmax=99.0){
+int weaklens::process_source(double sra, double sdec, double se1, double se2, double swt, double srms_e, double smcat, double sc1_dp, double sc2_dp, double szbest, bool usepdf, double integral_cut_zl, double integral_cut_zdiff, double integral_cut_Pth, double integral_cut_zmax)
+{
     process_source( sra,  sdec,  se1,  se2,  swt,  srms_e,  smcat,  sc1_dp,  sc2_dp, 0.0, 0.0, szbest, usepdf, integral_cut_zl, integral_cut_zdiff, integral_cut_Pth, integral_cut_zmax);
 }
 
-/// integral_cut_zl > 0.0 => \int_{zl+zdiff}^{zmax} P(z) dz > Pth to use the source
-int weaklens::process_source(double sra, double sdec, double se1, double se2, double swt, double srms_e, double smcat, double sc1_dp, double sc2_dp, double sc1_nb, double sc2_nb, double szbest, bool usepdf=false, double integral_cut_zl=-99.0, double integral_cut_zdiff=0.0, double integral_cut_Pth=0.0, double integral_cut_zmax=99.0)
+/// integral_cut_zl > 0.0 => \int_{integral_cut_zl+zdiff}^{zmax} P(z) dz > Pth to use the source
+/// integral_cut_zl = -99.0 => Use all sources with their PDFs
+/// integral_cut_zl = -49.0 => \int_{Actual zlens+zdiff}^{zmax} P(z) dz > Pth to use the source "Not implemented yet"
+int weaklens::process_source(double sra, double sdec, double se1, double se2, double swt, double srms_e, double smcat, double sc1_dp, double sc2_dp, double sc1_nb, double sc2_nb, double szbest, bool usepdf, double integral_cut_zl, double integral_cut_zdiff, double integral_cut_Pth, double integral_cut_zmax)
 {
 
     if(std::isnan(sra) || std::isnan(sdec) || std::isnan(se1) || std::isnan(se2) || std::isnan(swt) || std::isnan(smcat) || std::isnan(sc1_dp) || std::isnan(sc2_dp) || std::isnan(sc1_nb) || std::isnan(sc2_nb) || std::isnan(szbest) || std::isnan(srms_e)){
@@ -277,9 +280,9 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
     }
     if(integral_cut_zl>0.0){
         if (integrate_pofz(integral_cut_zl+integral_cut_zdiff, integral_cut_zmax) < integral_cut_Pth) return 1;
-    }else{
-        fprintf(stderr, "integral_cut_zl should be positive\n");
-        //exit(1);
+    }else if(integral_cut_zl!=-99.0){
+        fprintf(stderr, "integral_cut_zl should be positive or -99.0 \n");
+        exit(1);
         return 1;
     }
 
@@ -561,6 +564,7 @@ int weaklens::setup_pofz_array(double *pofz_zz, int xNpz)
     pz_chiz = new double [Npz];
     pz_fac = new double [Npz];
     pz_pofz = new double [Npz];
+    current_src_pofz = new double [Npz];
     Nphotgal = 0.0;
     
     for(int kk=0;kk<Npz;kk++){
