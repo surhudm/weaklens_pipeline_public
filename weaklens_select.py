@@ -64,12 +64,15 @@ def lens_select(lensargs):
 
         return ra, dec, z, wt
 
+    # Use generic text file with the columns: 
+    # ra (deg), dec (deg), z, lens_wt
+    # Any lines beginning with "#" are ignored
     if lensargs["type"] == "generic-text":
-        data = pandas.read_csv(lensargs["fname"], delim_whitespace=1)
-        ra = data["ra"].astype("float64")
-        dec = data["dec"].astype("float64")
-        z = data["z"].astype("float64")
-        wt = data["wt"].astype("float64")
+        data = pandas.read_csv(lensargs["fname"], delim_whitespace=1, header=None, names=(["ra", "dec", "z", "wt"]), comment="#")
+        ra = data["ra"].values.astype("float64")
+        dec = data["dec"].values.astype("float64")
+        z = data["z"].values.astype("float64")
+        wt = data["wt"].values.astype("float64")
          
         sys.stdout.write("Selecting %d samples \n" % (ra.size))
 
