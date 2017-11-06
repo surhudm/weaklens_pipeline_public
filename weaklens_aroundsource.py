@@ -17,7 +17,11 @@ def run_pipeline(config, verbose=0):
     rmax = config["rmax"]
     rmin = config["rmin"]
     rbin = config["rbin"]
-    pairout = config["outputdir"] + "/Dsigma.dat"
+
+    if "output_dsigma" not in config:
+        config["output_dsigma"] = "Dsigma.dat"
+    
+    pairout = config["outputdir"] + "/" + config["output_dsigma"]
 
     if "outputpairfile" not in config:
         config["outputpairfile"] = ""
