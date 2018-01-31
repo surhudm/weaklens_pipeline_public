@@ -15,6 +15,10 @@ weaklens::weaklens()
 
     sumdsig_num = (double *)calloc(rbins,sizeof(double));
     sumdcross_num = (double *)calloc(rbins,sizeof(double));
+
+    sumct_num = (double *)calloc(rbins,sizeof(double));
+    sumcx_num = (double *)calloc(rbins,sizeof(double));
+
     sumdsigsq_num = (double *)calloc(rbins,sizeof(double));
     sumdcrosssq_num = (double *)calloc(rbins,sizeof(double));
     sumdcount_num = (double *)calloc(rbins,sizeof(double));
@@ -63,6 +67,10 @@ weaklens::weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool 
 
     sumdsig_num = (double *)calloc(rbins,sizeof(double));
     sumdcross_num = (double *)calloc(rbins,sizeof(double));
+
+    sumct_num = (double *)calloc(rbins,sizeof(double));
+    sumcx_num = (double *)calloc(rbins,sizeof(double));
+
     sumdsigsq_num = (double *)calloc(rbins,sizeof(double));
     sumdcrosssq_num = (double *)calloc(rbins,sizeof(double));
     sumdcount_num = (double *)calloc(rbins,sizeof(double));
@@ -97,6 +105,8 @@ weaklens::weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool 
 weaklens::~weaklens(){
     free(sumdsig_num);
     free(sumdsigsq_num);
+    free(sumct_num);
+    free(sumcx_num);
     free(sumdcross_num);
     free(sumdcrosssq_num);
     free(sumdcount_num);
@@ -276,8 +286,12 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
     Niter++;
     sra *= (M_PI/180.);
     sdec *= (M_PI/180.);
-    se1 -= (sc1_dp+sc1_nb);
-    se2 -= (sc2_dp+sc2_nb);
+
+    // The additive corrections are defined so that they do not need to be scaled by responsivity, so keep them separate
+    //se1 -= (sc1_dp+sc1_nb);
+    //se2 -= (sc2_dp+sc2_nb);
+    double sc1 = (sc1_dp+sc1_nb);
+    double sc2 = (sc2_dp+sc2_nb);
 
     double c_sdec=cos(sdec);
     double s_sdec=sin(sdec);
@@ -346,10 +360,13 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
         double etan=-se1*(2*cosphi*cosphi-1)+se2*(2*sinphi*cosphi);
         double ecross=se2*(2*cosphi*cosphi-1)+se1*(2*sinphi*cosphi);
  
+        double ct=-sc1*(2*cosphi*cosphi-1)+sc2*(2*sinphi*cosphi);
+        double cx=sc2*(2*cosphi*cosphi-1)+sc1*(2*sinphi*cosphi);
+ 
         // Test if we want to output all the lens source pairs
         // We shall output for every pair: Lens_num, lens_ra, lens_dec, r, etan, ecross, wt[xx], swt, av_sigc_inv, 1+smcat, 1-srms_e**2
         if (foutput_lens_source_pairs!=NULL){
-            fprintf(foutput_lens_source_pairs, "%d %.7e %.7e %.7e %.7e %.7e %.7e %.7e %.7e %.7e %.7e\n", xx, ra[xx], dec[xx], dis2*Dcom[xx], etan, ecross, wt[xx], swt, av_sigc_inv, 1+smcat, 1-srms_e*srms_e);
+            fprintf(foutput_lens_source_pairs, "%d %.7e %.7e %.7e %.7e %.7e %.7e %.7e %.7e %.7e %.7e %.7e %.7e \n", xx, ra[xx], dec[xx], dis2*Dcom[xx], etan, ecross, wt[xx], swt, av_sigc_inv, 1+smcat, 1-srms_e*srms_e, ct, cx);
         }/*else{
             fprintf(stderr, "Wont print as foutput is NULL\n");
         }*/
@@ -358,8 +375,10 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
              continue;
 
         sumdsig_num[rpbin]+=(etan*wls_by_av_sigc_inv);
+        sumct_num[rpbin]+=(ct*wls_by_av_sigc_inv);
         sumdsigsq_num[rpbin]+=pow(etan*wls_by_av_sigc_inv, 2);
         sumdcross_num[rpbin]+=(ecross*wls_by_av_sigc_inv);
+        sumcx_num[rpbin]+=(cx*wls_by_av_sigc_inv);
         sumdcrosssq_num[rpbin]+=pow(ecross*wls_by_av_sigc_inv, 2);
         sumdcount_num[rpbin]+=(wt[xx]);
         sumwls[rpbin]+=wls;
@@ -398,7 +417,7 @@ int weaklens::finalize_results(){
         double rrmax = pow(10., logrmin + (i+1)*logrdiff);
         double Resp = sumwls_resp[i]/sumwls[i];
         /// These outputs should be pruned for clarity
-        fprintf(fout, "%e %le %le %le %le %le %le %e %le %le %le %le %le %le \n", rr, sumdsig_num[i], sumwls[i], sumwls_ms[i], sumwls_resp[i], sumdsig_num[i]/sumwls_ms[i]/2./Resp, sumwls[i]/sumwl, rrmin/2+rrmax/2, sumdcross_num[i]/sumwls_ms[i]/2./Resp, sumdcount_num[i]/sumwl, sumdcount_num[i], sqrt(sumdsigsq_num[i])/sumwls_ms[i]/2./Resp, sqrt(sumdcrosssq_num[i])/sumwls_ms[i]/2./Resp, sumpairs[i]);
+        fprintf(fout, "%e %le %le %le %le %le %le %e %le %le %le %le %le %le \n", rr, sumdsig_num[i], sumwls[i], sumwls_ms[i], sumwls_resp[i], sumdsig_num[i]/sumwls_ms[i]/2./Resp-sumct_num[i]/sumwls_ms[i], sumwls[i]/sumwl, rrmin/2+rrmax/2, sumdcross_num[i]/sumwls_ms[i]/2./Resp-sumcx_num[i]/sumwls_ms[i], sumdcount_num[i]/sumwl, sumdcount_num[i], sqrt(sumdsigsq_num[i])/sumwls_ms[i]/2./Resp, sqrt(sumdcrosssq_num[i])/sumwls_ms[i]/2./Resp, sumpairs[i]);
     }
     fclose(fout);
     return 0;

@@ -33,7 +33,7 @@ class weaklens
         double *ra, *dec, *zred, *lam, *wt, *datacen, *c_lra, *s_lra, *c_ldec, *s_ldec, *Dcom;
         int Ncen, Nfill;
         double zredmin, zredmax, Dcommin;
-        double *sumdsig_num, *sumdcross_num, *sumdcount_num, *sumwls, *sumwls_ms, *sumdsigsq_num, *sumdcrosssq_num, *sumwls_resp, *sumpairs;
+        double *sumdsig_num, *sumct_num, *sumdcross_num, *sumcx_num, *sumdcount_num, *sumwls, *sumwls_ms, *sumdsigsq_num, *sumdcrosssq_num, *sumwls_resp, *sumpairs;
         double sumwl;
         char outfile[10000];
         boost::timer *timer;
