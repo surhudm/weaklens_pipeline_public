@@ -17,7 +17,11 @@ def run_pipeline(config, verbose=0):
     rmax = config["rmax"]
     rmin = config["rmin"]
     rbin = config["rbin"]
-    pairout = config["outputdir"] + "/Dsigma.dat"
+
+    if "output_dsigma" not in config:
+        config["output_dsigma"] = "Dsigma.dat"
+    
+    pairout = config["outputdir"] + "/" + config["output_dsigma"]
 
     if "outputpairfile" not in config:
         config["outputpairfile"] = ""
@@ -110,7 +114,10 @@ def run_pipeline(config, verbose=0):
             else:
                 zphotgal = np.float64(pofz[i])
     
-            wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, sourceargs["fullpofz"])
+            if "integral_cut_zl" in sourceargs:
+                wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, sourceargs["fullpofz"], sourceargs["integral_cut_zl"], sourceargs["integral_cut_zdiff"], sourceargs["integral_cut_Pth"], sourceargs["integral_cut_zmax"])
+            else:
+                wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, sourceargs["fullpofz"])
         wpipe.finalize_results()
     
     wpipe.finalize_results()

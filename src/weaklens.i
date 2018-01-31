@@ -4,6 +4,8 @@
 %pointer_class(double,dp)
 %apply double& INOUT { double& a };
 
+%include "carrays.i"
+%array_class(double, doubleArray);
 %feature("autodoc", 1);
 %{
     #define SWIG_FILE_WITH_INIT
