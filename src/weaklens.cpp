@@ -290,8 +290,8 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
     }
     if(integral_cut_zl>0.0){
         if (integrate_pofz(integral_cut_zl+integral_cut_zdiff, integral_cut_zmax) < integral_cut_Pth) return 1;
-    }else if(integral_cut_zl!=-99.0){
-        fprintf(stderr, "integral_cut_zl should be positive or -99.0 \n");
+    }else if(integral_cut_zl!=-99.0 || integral_cut_zl!=-49.0){
+        fprintf(stderr, "integral_cut_zl should be positive, -49.0 or -99.0 \n");
         exit(1);
         return 1;
     }
@@ -336,6 +336,9 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
         double logrp = log10(dis2*Dcom[xx]);
 
         if ((!usepdf) && szbest<=zred[xx]) continue;
+
+        if(integral_cut_zl==-49.0)
+            if (integrate_pofz(zred[xx]+integral_cut_zdiff, integral_cut_zmax) < integral_cut_Pth) continue;
 
         if (logrp<=logrmin || logrp>=logrmax) continue;
         //std::cout<<szbest<<" "<<zred[xx]<<std::endl;
