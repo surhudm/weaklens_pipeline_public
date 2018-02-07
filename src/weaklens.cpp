@@ -288,9 +288,12 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
         //exit(1);
         return 1;
     }
+    double zlmax=0.0;
     if(integral_cut_zl>0.0){
         if (integrate_pofz(integral_cut_zl+integral_cut_zdiff, integral_cut_zmax) < integral_cut_Pth) return 1;
-    }else if(integral_cut_zl!=-99.0 || integral_cut_zl!=-49.0){
+    }else if(integral_cut_zl==-49.0){
+        zlmax = set_zlmax(integral_cut_zdiff, integral_cut_zmax, integral_cut_Pth);
+    }else if(integral_cut_zl!=-99.0){
         fprintf(stderr, "integral_cut_zl should be positive, -49.0 or -99.0 \n");
         exit(1);
         return 1;
@@ -337,8 +340,9 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
 
         if ((!usepdf) && szbest<=zred[xx]) continue;
 
-        if(integral_cut_zl==-49.0)
-            if (integrate_pofz(zred[xx]+integral_cut_zdiff, integral_cut_zmax) < integral_cut_Pth) continue;
+        if(integral_cut_zl==-49.0){
+            if (zred[xx] > zlmax) continue;
+        }
 
         if (logrp<=logrmin || logrp>=logrmax) continue;
         //std::cout<<szbest<<" "<<zred[xx]<<std::endl;
@@ -608,4 +612,19 @@ double weaklens::integrate_pofz(double zmin, double zmax){
             Pint += current_src_pofz[k];
     }
     return Pint;
+}
+
+double weaklens::set_zlmax(double integral_cut_zdiff, double integral_cut_zmax, double integral_cut_Pth){
+    double Pint=0.0;
+    double zlmax=pz_xz[Npz-1];
+    for(int k=0;k<Npz;k++){
+        if(pz_xz[k]<=integral_cut_zmax){
+            Pint += current_src_pofz[Npz-1-k];
+            if(Pint>integral_cut_Pth){
+                zlmax = pz_xz[Npz-1-k];
+                break;
+            }
+        }
+    }
+    return zlmax-integral_cut_zdiff;
 }

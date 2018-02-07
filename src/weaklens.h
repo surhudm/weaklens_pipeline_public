@@ -71,6 +71,7 @@ class weaklens
         int process_pofz(double *pofz, int zbins);
         int add_pofz(double *pofz, int zbins);
         double integrate_pofz(double zmin, double zmax);
+        double set_zlmax(double integral_cut_zdiff, double integral_cut_zmax, double integral_cut_Pth);
         double sigmacritinverse(double zlens);
         int finalize_results();
         int finalize_pofz();
