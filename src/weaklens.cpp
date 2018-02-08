@@ -616,7 +616,7 @@ double weaklens::integrate_pofz(double zmin, double zmax){
 
 double weaklens::set_zlmax(double integral_cut_zdiff, double integral_cut_zmax, double integral_cut_Pth){
     double Pint=0.0;
-    double zlmax=pz_xz[Npz-1];
+    double zlmax=0.0;
     for(int k=0;k<Npz;k++){
         if(pz_xz[Npz-1-k]<=integral_cut_zmax){
             Pint += current_src_pofz[Npz-1-k];
