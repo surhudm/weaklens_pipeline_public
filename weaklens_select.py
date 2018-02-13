@@ -646,10 +646,14 @@ def source_select(sourceargs, chunksize):
                 sourceargs["dm"] = 0.0
 
         # Read in the photoz file for the current field, tract
-        hdulist = pyfits.open("DataStore/S16A_v2.0/%s_tracts/%d_pz.fits" % (field, tract))
-        data = hdulist[1].data
-        pofz = data["%s_photoz_best" % (sourceargs['pofz_type']) ]
-        pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<sourceargs['photoz_risk_best_cut'])
+        try:
+            hdulist = pyfits.open("DataStore/S16A_v2.0/%s_tracts/%d_pz.fits" % (field, tract))
+            data = hdulist[1].data
+            pofz = data["%s_photoz_best" % (sourceargs['pofz_type']) ]
+            pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<sourceargs['photoz_risk_best_cut'])
+        except:
+            pofz = 0
+            pofzflag = np.zeros(end-begin, dtype=bool)
 
         # Read in the shape values for the current field, tract, the row filtering specification indexes rows from 1 - Nrecords
         wheremask = sourceargs['fits'].where("#row>%d && #row<=%d" % (begin, end))
@@ -724,10 +728,14 @@ def source_select(sourceargs, chunksize):
                 sourceargs["dm"] = 0.0
 
         # Read in the photoz file for the current field, tract
-        hdulist = pyfits.open("DataStore/S16A_v2.0/%s_tracts/%d_pz.fits" % (field, tract))
-        data = hdulist[1].data
-        pofz = data["%s_photoz_best" % (sourceargs['pofz_type']) ]
-        pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<sourceargs['photoz_risk_best_cut'])
+        try:
+            hdulist = pyfits.open("DataStore/S16A_v2.0/%s_tracts/%d_pz.fits" % (field, tract))
+            data = hdulist[1].data
+            pofz = data["%s_photoz_best" % (sourceargs['pofz_type']) ]
+            pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<sourceargs['photoz_risk_best_cut'])
+        except:
+            pofz = 0
+            pofzflag = np.zeros(end-begin, dtype=bool)
 
         # Read in the shape values for the current field, tract
         wheremask = sourceargs['fits'].where("#row>%d && #row<=%d" % (begin, end))
@@ -747,10 +755,13 @@ def source_select(sourceargs, chunksize):
         datagal = np.array([ira, idec, ishape_hsm_regauss_e1, ishape_hsm_regauss_e2, ishape_hsm_regauss_derived_shape_weight, ishape_hsm_regauss_derived_rms_e, ishape_hsm_regauss_derived_shear_bias_m, ishape_hsm_regauss_derived_shear_bias_c1, ishape_hsm_regauss_derived_shear_bias_c2]).T
         datagalflag = sourceargs['fits']["weak_lensing_flag"][wheremask]
 
-        sourceargs['fitspofz'] = fitsio.FITS("DataStore/S16A_v2.0/%s_tracts/%d_pz_pdf_%s.fits" % (field, tract, sourceargs['pofz_type']))[1]
+        try:
+            sourceargs['fitspofz'] = fitsio.FITS("DataStore/S16A_v2.0/%s_tracts/%d_pz_pdf_%s.fits" % (field, tract, sourceargs['pofz_type']))[1]
 
-        pofz = sourceargs['fitspofz']['P(z)'][:]
-        pofz = pofz.reshape((pofz.shape[0], -1,))
+            pofz = sourceargs['fitspofz']['P(z)'][:]
+            pofz = pofz.reshape((pofz.shape[0], -1,))
+        except:
+            pofz = 0
 
         sourceargs['iter'] = sourceargs['iter'] + 1
         Ngal = pofzflag.size
