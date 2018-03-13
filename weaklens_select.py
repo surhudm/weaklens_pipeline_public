@@ -762,6 +762,7 @@ def source_select(sourceargs, chunksize):
             pofz = pofz.reshape((pofz.shape[0], -1,))
         except:
             pofz = 0
+            pofzflag = np.zeros(end-begin, dtype=bool)
 
         sourceargs['iter'] = sourceargs['iter'] + 1
         Ngal = pofzflag.size

@@ -162,7 +162,7 @@ weaklens::~weaklens(){
         delete [] current_src_pofz;
         pz_alloc = false;
     }
-    if (foutput_lens_source_pairs=NULL){
+    if (foutput_lens_source_pairs==NULL){
        fclose(foutput_lens_source_pairs);
     }
 }
