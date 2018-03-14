@@ -489,12 +489,13 @@ double cosmology::getMvir(double M, double z)
 double findc200(double c200, void *params)
 {
     c200_params c1 = *(c200_params *) params;
-//    std::cout<<1<<std::endl;
-    cosmology *c2;
     double *cvir;
     double *omegaz;
     double *dcz;
+
+    /*
     c2=c1.cptr;
+    */
     cvir=c1.cvir;
     omegaz=c1.omegaz;
     dcz=c1.dcz;
@@ -1009,12 +1010,11 @@ void cosmology::pevolve_fixed(double cdel, int opt, double z, double zstart, dou
 double findcDel(double cDel, void *params)
 {
     cDel_params c1 = *(cDel_params *) params;
-    cosmology *c2;
     double *cvir;
     double *omegaz;
     double *dcz;
     double *Delta;
-    c2=c1.cptr;
+
     cvir=c1.cvir;
     omegaz=c1.omegaz;
     dcz=c1.dcz;

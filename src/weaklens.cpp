@@ -267,11 +267,12 @@ int weaklens::finalize_lenses()
 }
 
 int weaklens::test_searchrecord(){
+    return 0;
 }
 
 int weaklens::process_source(double sra, double sdec, double se1, double se2, double swt, double srms_e, double smcat, double sc1_dp, double sc2_dp, double szbest, bool usepdf, double integral_cut_zl, double integral_cut_zdiff, double integral_cut_Pth, double integral_cut_zmax)
 {
-    process_source( sra,  sdec,  se1,  se2,  swt,  srms_e,  smcat,  sc1_dp,  sc2_dp, 0.0, 0.0, szbest, usepdf, integral_cut_zl, integral_cut_zdiff, integral_cut_Pth, integral_cut_zmax);
+    return process_source( sra,  sdec,  se1,  se2,  swt,  srms_e,  smcat,  sc1_dp,  sc2_dp, 0.0, 0.0, szbest, usepdf, integral_cut_zl, integral_cut_zdiff, integral_cut_Pth, integral_cut_zmax);
 }
 
 /// integral_cut_zl > 0.0 => \int_{integral_cut_zl+zdiff}^{zmax} P(z) dz > Pth to use the source
@@ -330,10 +331,10 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
     tree->r_nearest(qv, dis2, res);
     //0 0.034433 0.260000 435.623138 0.150020
     if (verbose)
-        fprintf(stderr, "%d %f %f %f %f\n", res.size(), sqrt(dis2), szbest, Dcommin, zredmin);
+        fprintf(stderr, "%ld %f %f %f %f\n", res.size(), sqrt(dis2), szbest, Dcommin, zredmin);
     //FILE *dfile =fopen("debug.dat", "w");
 
-    for(int k=0;k<res.size();k++){
+    for(unsigned int k=0;k<res.size();k++){
         int xx = res.at(k).idx;
         double dis2=sqrt(res.at(k).dis);
         double logrp = log10(dis2*Dcom[xx]);
@@ -457,7 +458,7 @@ int weaklens::finalize_pofz(){
 int weaklens::add_pofz(double *pofz, int zbins)
 {
     int status=0;
-    double sum;
+    double sum=0.0;
     for(int k=0;k<Npz;k++){
         if (std::isnan(pofz[k]) || pofz[k]<0 || pofz[k]>1.e5 || pofz[k]<-1.E5){
 	    status = 1;

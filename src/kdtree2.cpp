@@ -920,7 +920,7 @@ void KDTreeNode::process_terminal_node(SearchRecord& sr) {
   const KDTreeArray& data = *sr.data;
 
   const bool debug = false;
-  int N=sr.N;
+  //int N=sr.N;
 
   if (debug) {
     printf("Processing terminal node %d, %d\n",l,u);
@@ -1020,7 +1020,7 @@ void KDTreeNode::process_terminal_node_fixedball(SearchRecord& sr) {
   //
   bool rearrange = sr.rearrange; 
   const KDTreeArray& data = *sr.data;
-  int N=sr.N;
+  //int N=sr.N;
 
   for (int i=l; i<=u;i++) {
     int indexofi = sr.ind[i]; 
@@ -1085,7 +1085,7 @@ int KDTreeNode::process_terminal_node_fixedball_count(SearchRecord& sr) {
   bool rearrange = sr.rearrange; 
   const KDTreeArray& data = *sr.data;
   int count=0;
-  int N=sr.N;
+  //int N=sr.N;
 
   for (int i=l; i<=u;i++) {
     int indexofi = sr.ind[i]; 

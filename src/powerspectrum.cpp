@@ -1838,10 +1838,13 @@ double cosmology::wpnl(double z, double rad,double projmax){
 
     gsl_integration_workspace * w = gsl_integration_workspace_alloc (1000);
     stat=gsl_integration_qag (&F, 0.0, ymax, 0, 1.e-3, 1000, 5, w, &result, &error);
+    if (stat!=0){
+        fprintf(stderr, "Integration issue in wpnl\n");
+    }
     gsl_integration_workspace_free (w);
 
-        result=2.0*result*rad;
-        return result;
+    result=2.0*result*rad;
+    return result;
 }
 
 double dwpl(double x, void* params)
@@ -1888,8 +1891,12 @@ double cosmology::wpl(double z, double rad, double projmax){
 	stat=gsl_integration_qag (&F, 0.0, ymax, 0, 1.e-3, 1000, 5, w, &result, &error);
 	gsl_integration_workspace_free (w);
 
-        result=2.0*result*rad;
-        return result;
+    if (stat!=0){
+        fprintf(stderr, "Integration issue in wpl\n");
+    }
+
+    result=2.0*result*rad;
+    return result;
 }
 /// Friend function for calculating Qk2
 double dQk(double x, void * params){
@@ -2154,7 +2161,10 @@ double cosmology::xiNL_bar(double r,double z){
 	stat=gsl_integration_qags (&F, 0.0, 1.0, 0, 1.e-3, 1000, w, &result, &error);
 	gsl_integration_workspace_free (w);
 
-        return result*3.;
+    if (stat!=0){
+        fprintf(stderr, "Integration issue in xiNL_bar\n");
+    }
+    return result*3.;
 }
 
 double cosmology::xiNL_barbar_num(double r,double z){
@@ -2243,6 +2253,9 @@ double cosmology::xiNL_barbar(double r,double z){
 	stat=gsl_integration_qags (&F, 0.0, 1.0, 0, 1.e-3, 1000, w, &result, &error);
 	gsl_integration_workspace_free (w);
 
+    if (stat!=0){
+        fprintf(stderr, "Integration issue in xiNL_barbar\n");
+    }
         return result*5.;
 }
 
@@ -2361,6 +2374,10 @@ double cosmology::wpnl_kaiser(double z, double rad, double projmax,double fkai){
 	stat=gsl_integration_qag (&F, 0.0, ymax, 0, 1.e-3, 1000, 5, w, &result, &error);
 	gsl_integration_workspace_free (w);
 
+    if (stat!=0){
+        fprintf(stderr, "Integration issue in wpnl_kaiser\n");
+    }
+
         result=2.0*rad*result;
         return result;
 }
@@ -2460,6 +2477,10 @@ double cosmology::xiL_bar(double r,double z){
 	stat=gsl_integration_qags (&F, 0., 1.0, 0, 1.e-3, 1000, w, &result, &error);
 	gsl_integration_workspace_free (w);
 
+    if (stat!=0){
+        fprintf(stderr, "Integration issue in xiL_bar\n");
+    }
+
         return result*3.;
 }
 
@@ -2548,6 +2569,9 @@ double cosmology::xiL_barbar(double r,double z){
 	stat=gsl_integration_qags (&F, 0., 1.0, 0, 1.e-3, 1000, w, &result, &error);
 	gsl_integration_workspace_free (w);
 
+    if (stat!=0){
+        fprintf(stderr, "Integration issue in xiL_barbar\n");
+    }
         return result*5.;
 }
 
@@ -2682,6 +2706,9 @@ double cosmology::wpl_kaiser(double z, double rad, double projmax,double fkai){
 	stat=gsl_integration_qag (&F, 0.0, ymax, 0, 1.e-3, 1000, 5, w, &result, &error);
 	gsl_integration_workspace_free (w);
 
+    if (stat!=0){
+        fprintf(stderr, "Integration issue in wpl_kaiser \n");
+    }
         result=2.0*rad*result;
         //exit(1111);
         return result;

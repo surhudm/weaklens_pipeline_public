@@ -278,10 +278,10 @@ int tomography::process_source(double sra, double sdec, double se1, double se2, 
     tree->r_nearest(qv, dis2, res);
     //0 0.034433 0.260000 435.623138 0.150020
     if (verbose)
-        fprintf(stderr, "%d %f %f %f %f\n", res.size(), sqrt(dis2), szbest, Dcommin, zredmin);
+        fprintf(stderr, "%ld %f %f %f %f\n", res.size(), sqrt(dis2), szbest, Dcommin, zredmin);
     //FILE *dfile =fopen("debug.dat", "w");
 
-    for(int k=0;k<res.size();k++){
+    for(unsigned int k=0;k<res.size();k++){
         int xx = res.at(k).idx;
         double dis2=sqrt(res.at(k).dis);
         double logrp = log10(dis2*Dcom[xx]);
@@ -363,6 +363,7 @@ int tomography::process_pofz(double *pofz, int zbins)
         av_num+=pofz[k];
     }
    pofzinbin = av_num/av_den;
+   return 1;
 }
 
 int tomography::setup_pofz(double pofz_zmin, double pofz_zdiff, int xNpz)
