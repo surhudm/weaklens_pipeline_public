@@ -692,6 +692,10 @@ def source_select(sourceargs, chunksize):
                 sourceargs["df"] = pandas.read_csv("DataStore/S16A_v2.0/Mapping_from_Rachel_catalogs_to_Hironao_catalogs.dat.calibrated", delim_whitespace=1)
             else:
                 sourceargs["df"] = pandas.read_csv("DataStore/S16A_v2.0/Mapping_from_Rachel_catalogs_to_Hironao_catalogs.dat", delim_whitespace=1)
+            if "usefield" in sourceargs:
+                restidx = sourceargs["df"].field.values==sourceargs["usefield"]
+                sourceargs["df"] = sourceargs["df"][restidx]
+                print "Using only field", sourceargs["usefield"]
 
         datagal = 0
         Ngal = 0
