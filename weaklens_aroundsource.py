@@ -10,6 +10,7 @@ import fitsio
 import argparse
 import yaml
 from weaklens_select import lens_select, source_select, get_pofz_array
+from scipy.interpolate import interp1d
 
 
 def run_pipeline(config, verbose=0):
@@ -17,6 +18,9 @@ def run_pipeline(config, verbose=0):
     rmax = config["rmax"]
     rmin = config["rmin"]
     rbin = config["rbin"]
+
+    if "oversample_pofz" not in config:
+        config["oversample_pofz"] = 1
 
     if "output_dsigma" not in config:
         config["output_dsigma"] = "Dsigma.dat"
@@ -53,6 +57,12 @@ def run_pipeline(config, verbose=0):
     if sourceargs["fullpofz"]:
         print "Setting up P(z)"
         pofz_zz = get_pofz_array(sourceargs).astype("float32")
+
+        if config["oversample_pofz"] > 1:
+            new_size = config["oversample_pofz"]*(pofz_zz.size-1) + 1
+            old_pofz_zz = pofz_zz * 1.0
+            pofz_zz = np.linspace(old_pofz_zz[0], old_pofz_zz[-1], new_size)
+
         wpipe.setup_pofz_array(pofz_zz)
         if verbose:
             print pofz_zz.size
@@ -108,7 +118,14 @@ def run_pipeline(config, verbose=0):
                     continue
                 else:
                     pass
-                status = wpipe.process_pofz(np.array(pofz[i], dtype=np.float32))
+
+                if config["oversample_pofz"] > 1:
+                    spl = interp1d(old_pofz_zz, np.array(pofz[i], dtype=np.float32), kind="linear")
+                    pofz_array = spl(pofz_zz)
+                else:
+                    pofz_array = np.array(pofz[i], dtype=np.float32)
+
+                status = wpipe.process_pofz(pofz_array)
                 if status:
                     continue
             else:
