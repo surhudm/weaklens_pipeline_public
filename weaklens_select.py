@@ -159,6 +159,36 @@ def lens_select(lensargs):
         #jackreg = getregions(ra, dec, lensargs["jackregfile"])
         return ra, dec, zred, wt #, jackreg
 
+    if lensargs['type'] == "hsc-lowz-subsample":
+        df = pandas.read_csv("DataStore/HSC_LOWZ/LOWZ_K+E_v0.99.dat", delim_whitespace=1)
+        ra = df.ra.values
+        dec = df.dec.values
+        zred = df.z.values
+        wt = (df.weight_noz.values + df.weight_cp.values - 1.0)* df.weight_star.values
+        iMag = df.Mag_Wake.values
+        idx = (iMag>lensargs["iMagmin"]) & (iMag<=lensargs["iMagmax"]) & (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"])
+
+        if lensargs['selection_write'] == 1:
+            idxall = (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"])
+            zarr = np.linspace(lensargs["zmin"], lensargs["zmax"], 20)
+            selarr = np.zeros(zarr.size-1)
+            for i in range(1, zarr.size):
+                selarr[i-1] = np.sum(idx & (zred>zarr[i-1]) & (zred<=zarr[i]))*1.0/np.sum(idxall & (zred>zarr[i-1]) & (zred<=zarr[i]))
+                print i, selarr[i-1], "\n================="
+            zarr = zarr[:-1]/2. + zarr[1:]/2.
+            dfsel = pandas.DataFrame(zarr, columns=(["zred"]))
+            dfsel["sel"] = selarr
+            dfsel.to_csv(lensargs["selection"], index=False, sep=" ")
+
+        ra = ra[idx]
+        dec = dec[idx]
+        zred = zred[idx]
+        wt = wt[idx]
+        iMag = iMag[idx]
+
+        sys.stdout.write("Selecting %d samples \n" % (ra.size))
+        #jackreg = getregions(ra, dec, lensargs["jackregfile"])
+        return ra, dec, zred, wt #, jackreg
 
     if lensargs['type'] == "hsc-cmass-subsample":
         df = pandas.read_csv("DataStore/HSC_CMASS/CMASS_K+E_v0.99.dat", delim_whitespace=1)
