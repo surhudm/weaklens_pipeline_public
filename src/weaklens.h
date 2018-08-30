@@ -63,7 +63,7 @@ class weaklens
     public:
         kdtree2::KDTree *tree;
         weaklens();
-        weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool xverbose, double Omegam=0.279, char *output_lens_source_pairs=(char *)"", double xR2min=0.3, double xR2max=1.0, double xR2bins=100);
+        weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool xverbose, double Omegam=0.279, char *output_lens_source_pairs=(char *)"", double xR2min=0.3, double xR2max=1.0, int xR2bins=100);
         ~weaklens();
         int allocate_lens_memory(int xNcen);
         int process_lens(double xra, double xdec, double xzred, double xwt);
