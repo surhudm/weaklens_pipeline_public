@@ -101,7 +101,7 @@ def run_pipeline(config, verbose=0):
                     if sourceargs['format'] == "des":
                         ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb = datagal[i]
                     elif sourceargs["format"] == "hsc":
-                        ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp = datagal[i]
+                        ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, R2gal = datagal[i]
                         c1_nb = 0.0
                         c2_nb = 0.0
                     zphotgal = 0.0
@@ -111,7 +111,7 @@ def run_pipeline(config, verbose=0):
                     c2_nb = -c2_nb
                 
             elif sourceargs['filetype'] == "ascii":
-                ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal = datagal.ra.values[i], datagal.dec.values[i], datagal.e1.values[i],datagal.e2.values[i],datagal.weight.values[i],datagal.m.values[i],datagal.c1_dp.values[i],datagal.c2_dp.values[i],datagal.c1_nb.values[i],datagal.c2_nb.values[i],datagal.z_b.values[i]
+                ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, R2gal = datagal.ra.values[i], datagal.dec.values[i], datagal.e1.values[i],datagal.e2.values[i],datagal.weight.values[i],datagal.m.values[i],datagal.c1_dp.values[i],datagal.c2_dp.values[i],datagal.c1_nb.values[i],datagal.c2_nb.values[i],datagal.z_b.values[i], datagal.R2gal.values[i]
     
             if sourceargs["fullpofz"]:
                 if np.isnan(pofz[i][0]):
@@ -132,9 +132,9 @@ def run_pipeline(config, verbose=0):
                 zphotgal = np.float64(pofz[i])
     
             if "integral_cut_zl" in sourceargs:
-                wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, sourceargs["fullpofz"], sourceargs["integral_cut_zl"], sourceargs["integral_cut_zdiff"], sourceargs["integral_cut_Pth"], sourceargs["integral_cut_zmax"])
+                wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, R2gal, sourceargs["fullpofz"], sourceargs["integral_cut_zl"], sourceargs["integral_cut_zdiff"], sourceargs["integral_cut_Pth"], sourceargs["integral_cut_zmax"])
             else:
-                wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, sourceargs["fullpofz"])
+                wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, R2gal, sourceargs["fullpofz"])
         wpipe.finalize_results()
     
     wpipe.finalize_results()
