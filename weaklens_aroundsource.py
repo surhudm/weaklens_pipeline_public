@@ -1,5 +1,6 @@
 import sys
 sys.path.append("install/lib/python2.7/site-packages/")
+sys.path.append("install/lib64/python2.7/site-packages/")
 import weaklens
 import frogress
 import pandas
@@ -31,6 +32,7 @@ def run_pipeline(config, verbose=0):
         config["outputpairfile"] = ""
     else:
         config["outputpairfile"] = config["outputdir"] + "/" + config["outputpairfile"]
+
     
     from subprocess import call
     call("mkdir -p %s" % (config["outputdir"]), shell=1)
@@ -70,6 +72,9 @@ def run_pipeline(config, verbose=0):
             for i in range(pofz_zz.size):
                 print i, pofz_zz[i]
                 pofz_zz_arr[i] = pofz_zz[i]
+    elif "photoz_type" not in sourceargs:
+        sourceargs["photoz_type"] = "_best"
+
     
     while not done:
         itern = itern + 1
@@ -137,7 +142,7 @@ def run_pipeline(config, verbose=0):
                 wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, R2gal, sourceargs["fullpofz"])
         wpipe.finalize_results()
     
-    wpipe.finalize_results()
+    wpipe.finalize_results(writeok=True)
 
 
 if __name__ == "__main__":

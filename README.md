@@ -86,7 +86,12 @@ source:
   pofz_type: mizuki
   fullpofz: false
   photoz_risk_best_cut: 0.5
+  photoz_type: _best
 ```
+
+`photoz_type` can be `_best` or `_mc` or `_median` or `_mean` that are
+supported by the `P(z)` files provided by HSC. If no such option is provided
+then the default would be `_best`.
 
 # Calling signature
 
