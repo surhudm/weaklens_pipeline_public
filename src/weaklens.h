@@ -77,7 +77,7 @@ class weaklens
         double integrate_pofz(double zmin, double zmax);
         double set_zlmax(double integral_cut_zdiff, double integral_cut_zmax, double integral_cut_Pth);
         double sigmacritinverse(double zlens);
-        int finalize_results();
+        int finalize_results(bool writeok=false);
         int finalize_pofz();
         int test_searchrecord();
 };

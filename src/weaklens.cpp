@@ -178,7 +178,7 @@ weaklens::~weaklens(){
         delete [] current_src_pofz;
         pz_alloc = false;
     }
-    if (foutput_lens_source_pairs==NULL){
+    if (foutput_lens_source_pairs!=NULL){
        fclose(foutput_lens_source_pairs);
     }
 }
@@ -447,7 +447,7 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
     return 0;
 }
 
-int weaklens::finalize_results(){
+int weaklens::finalize_results(bool writeok){
     fprintf(stderr, "%e %e %e\n", logrmin, logrmax, logrdiff);
     FILE *fout=fopen(outfile, "w");
 
@@ -464,6 +464,7 @@ int weaklens::finalize_results(){
         /// These outputs should be pruned for clarity
         fprintf(fout, "%e %le %le %le %le %le %le %e %le %le %le %le %le %le %le \n", rr, sumdsig_num[i], sumwls[i], sumwls_ms[i], sumwls_resp[i], sumdsig_num[i]/sumwls_ms[i]/2./Resp-sumct_num[i]/sumwls_ms[i], sumwls[i]/sumwl, rrmin/2+rrmax/2, sumdcross_num[i]/sumwls_ms[i]/2./Resp-sumcx_num[i]/sumwls_ms[i], sumdcount_num[i]/sumwl, sumdcount_num[i], sqrt(sumdsigsq_num[i])/sumwls_ms[i]/2./Resp, sqrt(sumdcrosssq_num[i])/sumwls_ms[i]/2./Resp, sumpairs[i], R2selnbias);
     }
+    if(writeok) fprintf(fout, "#OK\n");
     fclose(fout);
     return 0;
 }
