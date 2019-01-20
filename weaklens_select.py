@@ -683,7 +683,7 @@ def source_select(sourceargs, chunksize):
         try:
             hdulist = pyfits.open("DataStore/S16A_v2.0/%s_tracts/%d_pz.fits" % (field, tract))
             data = hdulist[1].data
-            pofz = data["%s_photoz%s" % (sourceargs['pofz_type'], sourceargs['photoz_type']) ]
+            pofz = data["%s_photoz%s" % (sourceargs['pofz_type'], sourceargs['photoz_estimate']) ]
             pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<sourceargs['photoz_risk_best_cut'])
         except:
             pofz = 0

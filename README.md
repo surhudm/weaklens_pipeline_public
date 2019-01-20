@@ -86,7 +86,7 @@ source:
   pofz_type: mizuki
   fullpofz: false
   photoz_risk_best_cut: 0.5
-  photoz_type: _best
+  photoz_estimate: _best
 ```
 
 `photoz_type` can be `_best` or `_mc` or `_median` or `_mean` that are
