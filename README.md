@@ -87,6 +87,7 @@ source:
   fullpofz: false
   photoz_risk_best_cut: 0.5
   photoz_estimate: _best
+  zdiff: 0.0
 ```
 
 `photoz_type` can be `_best` or `_mc` or `_median` or `_mean` that are
