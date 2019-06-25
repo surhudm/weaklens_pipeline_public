@@ -1,5 +1,5 @@
 import numpy as np
-import pyfits
+from astropy.io import fits as pyfits
 import pandas
 import sys
 import fitsio
@@ -74,6 +74,23 @@ def lens_select(lensargs):
         z = data["z"].values.astype("float64")
         wt = data["wt"].values.astype("float64")
          
+        sys.stdout.write("Selecting %d samples \n" % (ra.size))
+
+        return ra, dec, z, wt
+    if lensargs["type"] == "gama":
+        hdulist = pyfits.open("./DataStore/gama/G3CFOFGroup.fits")
+        data = hdulist[1].data
+        ra = data["IterCenRA"].astype("float64") #ra of galaxies in the lense
+        dec = data["IterCenDec"].astype("float64") #dec of galaxies in the lense
+        z = data["IterCenZ"].astype("float64") #redshift of galaxies in the lense
+        vdisp=data["VelDisp"].astype("float64") 
+        idx = (z>lensargs["zmin"]) & (z<=lensargs["zmax"]) & (vdisp>lensargs["vdispmin"]) & (vdisp<=lensargs["vdispmax"])
+        ra = ra[idx]
+        dec = dec[idx]
+        z = z[idx]
+        vdisp = vdisp[idx]
+        wt = ra/ra
+
         sys.stdout.write("Selecting %d samples \n" % (ra.size))
 
         return ra, dec, z, wt

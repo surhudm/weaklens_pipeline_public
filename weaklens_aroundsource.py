@@ -6,7 +6,7 @@ import frogress
 import pandas
 import numpy as np
 import sys
-import pyfits
+from astropy.io import fits as pyfits
 import fitsio
 import argparse
 import yaml
