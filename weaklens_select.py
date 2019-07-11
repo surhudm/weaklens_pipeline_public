@@ -574,6 +574,38 @@ def lens_select(lensargs):
         #return ra[idx], dec[idx], zred[idx], wt[idx]
         return ra, dec, zred, wt
 
+    if lensargs['type'] == "redmapper_satellite":
+        hdulist = pyfits.open("DataStore/redmapper/redmapper_dr8_public_v6.3_members.fits")
+        hdulist2 = pyfits.open("DataStore/redmapper/redmapper_dr8_public_v6.3_catalog.fits")
+        data = hdulist[1].data
+        data2 = hdulist2[1].data
+        zlamda=data2["z_lambda"]
+        cid=data2["id"]
+        ldict={}
+        for ii in range(cid.size):
+            ldict[cid[ii]]=zlamda[ii]
+        mid=data['id']
+        ra = data["ra"]
+        dec = data["dec"]        
+        lamda = data2["lambda"]
+        wt = ra/ra
+        r = data["r"]
+        zred = ra*0.0
+        
+        for jj in range(mid.size):
+            zred[jj]=ldict[mid[jj]].astype('float64')        
+            
+        idx = (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"]) & (r>lensargs["rmin"]) & (r<=lensargs["rmax"])
+        ra = ra[idx]
+        dec = dec[idx]
+        zred = zred[idx]
+        #lamda = lamda[idx]
+        wt = wt[idx]
+        sys.stdout.write("Selecting %d lenses \n" % (np.sum(idx)))
+        #return ra[idx], dec[idx], zred[idx], wt[idx]
+        return ra, dec, zred, wt
+
+
     if lensargs['type'] == "redmapper-random":
         ra, dec, zred, lamda, wt = np.loadtxt("DataStore/redmapper/redmapper_public_v5.10_randoms_%05d.dat" % (lensargs["rannum"]), unpack=1) 
         idx = (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"]) & (lamda>lensargs["lammin"]) & (lamda<=lensargs["lammax"])
