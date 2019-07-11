@@ -16,6 +16,8 @@
 #include <boost/multi_array.hpp>
 typedef boost::multi_array<double,1> array1ddouble;
 #include <boost/timer.hpp>
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
 
 class weaklens;
 
@@ -33,6 +35,7 @@ class weaklens
         double logrmin;
         double logrmax;
         double logrdiff;
+        bool random_rotate;
         int rbins;
         double *ra, *dec, *zred, *lam, *wt, *datacen, *c_lra, *s_lra, *c_ldec, *s_ldec, *Dcom;
         int Ncen, Nfill;
@@ -60,6 +63,9 @@ class weaklens
         double cee;
         double Omegam;
 
+        const gsl_rng_type * rngtype;
+        gsl_rng * rng;
+
     public:
         kdtree2::KDTree *tree;
         weaklens();
@@ -77,9 +83,10 @@ class weaklens
         double integrate_pofz(double zmin, double zmax);
         double set_zlmax(double integral_cut_zdiff, double integral_cut_zmax, double integral_cut_Pth);
         double sigmacritinverse(double zlens);
-        int finalize_results();
+        int finalize_results(bool writeok=false);
         int finalize_pofz();
         int test_searchrecord();
+        int setup_random_rotate(int Nseed);
 };
 
 #endif
