@@ -50,6 +50,8 @@ For convenience Hironao has made the photozs and the photoz pdfs for sources ava
 Dump them as they are in the directory `DataStore/S16A_v2.0`
 
 # Sample configuration file
+
+## For point estimate of photoz
 ```
 # Matter density
 Omegam: 0.31
@@ -89,10 +91,66 @@ source:
   photoz_estimate: _best
   zdiff: 0.0
 ```
-
-`photoz_type` can be `_best` or `_mc` or `_median` or `_mean` that are
+`photoz_estimate` can be `_best` or `_mc` or `_median` or `_mean` that are
 supported by the `P(z)` files provided by HSC. If no such option is provided
 then the default would be `_best`.
+
+## For using the full P(z)
+```
+# Matter density
+Omegam: 0.31
+# Output directory
+outputdir: camira/mizuki/zbest_0.70_1.20_10.0_1000.0
+# Radial bins
+rbin: 20
+rmax: 20.0
+rmin: 0.1
+# Whether to output lens source pair information
+outputpairfile : "allpairs.dat"
+# Lens configuration (to be used in weaklens_select.py:lens_select)
+lens:
+  hsc-release: s16a
+  lammax: 1000.0
+  lammin: 10.0
+  type: camira
+  version: v1
+  zmax: 1.2
+  zmin: 0.7
+# Source configuration (to be used in weaklens_select.py:source_select)
+source:
+  # Blinding related
+  username: more
+  blinded: 1
+  blindnumber: 0
+  dm: 0.04353
+  # Source file related
+  type: hsc-wide-s16a_v2.0
+  filetype: fits
+  format: hsc
+  include_corrections: true
+  # Photo z related
+  pofz_type: mizuki
+  fullpofz: true
+  photoz_risk_best_cut: 0.5
+  integral_cut_zl: 0.8
+  integral_cut_zdiff: 0.0
+  integral_cut_Pth: 0.99
+  integral_cut_zmax: 4.0
+```
+
+The parameters `integral_cut_zl`, `integral_cut_zdiff`, `integral_cut_Pth`, `integral_cut_zmax` are used to set a cut on the sources to be used.
+
+If `integral_cut_zl=-99.0`, then use all the sources.
+
+If `integral_cut_zl=-49.0`, then use sources if they satisfy
+```
+\int_{zlens+zdiff}^{zmax} P(z) dz > integral_cut_Pth \,.
+```
+
+If `integral_cut_zl>0`,
+```
+\int_{integral_cut_zl+zdiff}^{zmax} P(z) dz > integral_cut_Pth \,.
+```
 
 # Calling signature
 
