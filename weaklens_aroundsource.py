@@ -1,5 +1,6 @@
 import sys
 sys.path.append("install/lib/python2.7/site-packages/")
+sys.path.append("install/lib64/python2.7/site-packages/")
 import weaklens
 import frogress
 import pandas
@@ -22,6 +23,9 @@ def run_pipeline(config, verbose=0):
     if "oversample_pofz" not in config:
         config["oversample_pofz"] = 1
 
+    if "zdiff" not in config:
+        config["zdiff"] = 0.0
+
     if "output_dsigma" not in config:
         config["output_dsigma"] = "Dsigma.dat"
     
@@ -31,6 +35,7 @@ def run_pipeline(config, verbose=0):
         config["outputpairfile"] = ""
     else:
         config["outputpairfile"] = config["outputdir"] + "/" + config["outputpairfile"]
+
     
     from subprocess import call
     call("mkdir -p %s" % (config["outputdir"]), shell=1)
@@ -70,6 +75,9 @@ def run_pipeline(config, verbose=0):
             for i in range(pofz_zz.size):
                 print i, pofz_zz[i]
                 pofz_zz_arr[i] = pofz_zz[i]
+    elif "photoz_type" not in sourceargs:
+        sourceargs["photoz_type"] = "_best"
+
     
     while not done:
         itern = itern + 1
@@ -93,9 +101,10 @@ def run_pipeline(config, verbose=0):
     
         #for i in frogress.bar(range(Ngal)):
         for i in range(Ngal):
+
             if not datagalflag[i] or not pofzflag[i]:
                 continue
-    
+
             if sourceargs['filetype'] == "fits":
                 if sourceargs['include_corrections']:
                     if sourceargs['format'] == "des":
@@ -133,11 +142,13 @@ def run_pipeline(config, verbose=0):
     
             if "integral_cut_zl" in sourceargs:
                 wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, R2gal, sourceargs["fullpofz"], sourceargs["integral_cut_zl"], sourceargs["integral_cut_zdiff"], sourceargs["integral_cut_Pth"], sourceargs["integral_cut_zmax"])
+            elif "zdiff" in sourceargs and not sourceargs["fullpofz"]:
+                wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, R2gal, sourceargs["fullpofz"], -99.0, sourceargs["zdiff"], 0.0, 99.0)
             else:
                 wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, R2gal, sourceargs["fullpofz"])
         wpipe.finalize_results()
     
-    wpipe.finalize_results()
+    wpipe.finalize_results(writeok=True)
 
 
 if __name__ == "__main__":

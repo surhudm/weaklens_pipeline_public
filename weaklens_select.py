@@ -77,6 +77,23 @@ def lens_select(lensargs):
         sys.stdout.write("Selecting %d samples \n" % (ra.size))
 
         return ra, dec, z, wt
+    if lensargs["type"] == "gama":
+        hdulist = pyfits.open("./DataStore/gama/G3CFOFGroup.fits")
+        data = hdulist[1].data
+        ra = data["IterCenRA"].astype("float64") #ra of galaxies in the lense
+        dec = data["IterCenDec"].astype("float64") #dec of galaxies in the lense
+        z = data["IterCenZ"].astype("float64") #redshift of galaxies in the lense
+        vdisp=data["VelDisp"].astype("float64") 
+        idx = (z>lensargs["zmin"]) & (z<=lensargs["zmax"]) & (vdisp>lensargs["vdispmin"]) & (vdisp<=lensargs["vdispmax"])
+        ra = ra[idx]
+        dec = dec[idx]
+        z = z[idx]
+        vdisp = vdisp[idx]
+        wt = ra/ra
+
+        sys.stdout.write("Selecting %d samples \n" % (ra.size))
+
+        return ra, dec, z, wt
 
     if lensargs["type"] == "mgii-absorbers-ran":
         hdulist = pyfits.open("DataStore/INFO_140303_Ref_Mg_II_DR79_match.fits")
@@ -683,7 +700,7 @@ def source_select(sourceargs, chunksize):
         try:
             hdulist = pyfits.open("DataStore/S16A_v2.0/%s_tracts/%d_pz.fits" % (field, tract))
             data = hdulist[1].data
-            pofz = data["%s_photoz_best" % (sourceargs['pofz_type']) ]
+            pofz = data["%s_photoz%s" % (sourceargs['pofz_type'], sourceargs['photoz_estimate']) ]
             pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<sourceargs['photoz_risk_best_cut'])
         except:
             pofz = 0

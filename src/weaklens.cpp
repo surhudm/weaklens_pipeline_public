@@ -373,7 +373,7 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
         double dis2=sqrt(res.at(k).dis);
         double logrp = log10(dis2*Dcom[xx]);
 
-        if ((!usepdf) && szbest<=zred[xx]) continue;
+        if ((!usepdf) && szbest<=zred[xx]+integral_cut_zdiff) continue;
 
         if(integral_cut_zl==-49.0){
             if (zred[xx] > zlmax) continue;
