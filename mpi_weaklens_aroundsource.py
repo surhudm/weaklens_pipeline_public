@@ -45,4 +45,6 @@ if __name__ == "__main__":
     if args.random:
         config["random_rotate_seed"] = comm.rank + 875324
 
+    config["output_dsigma"] = config["output_dsigma"] + "%05d" % comm.rank
+
     run_pipeline(config)
