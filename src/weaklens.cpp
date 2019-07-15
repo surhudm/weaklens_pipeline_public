@@ -678,4 +678,5 @@ int weaklens::setup_random_rotate(int Nseed){
     rngtype = gsl_rng_default;
     rng = gsl_rng_alloc (rngtype);
     gsl_rng_set(rng, (unsigned long int)Nseed);
+    return 0;
 }
