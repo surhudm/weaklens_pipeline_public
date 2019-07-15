@@ -1,4 +1,4 @@
-import pyfits 
+from astropy.io import fits as pyfits 
 from glob import glob
 import numpy as np
 
@@ -20,7 +20,8 @@ fp.write("field tract begin end matched\n")
 for field in ["AEGIS", "GAMA09H", "GAMA15H", "HECTOMAP", "VVDS", "WIDE12H", "XMM"]:
     # Read the filename
     #hdulist = pyfits.open("%s.fits" % (field))
-    hdulist = pyfits.open("DataStore/Blinded_S16A_v2.0/hsc-blind/%s_no_m.fits" % (field))
+    #hdulist = pyfits.open("DataStore/Blinded_S16A_v2.0/hsc-blind/%s_no_m.fits" % (field))
+    hdulist = pyfits.open("DataStore/Calibrated_S16A_v2.0/%s_calibrated.fits" % (field))
     data = hdulist[1].data
     object_id = data["object_id"]
     begin = 0
