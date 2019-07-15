@@ -33,7 +33,7 @@ def run_pipeline(config, verbose=0):
 
     if "outputpairfile" not in config:
         config["outputpairfile"] = ""
-    else:
+    elif config["outputpairfile"] != "":
         config["outputpairfile"] = config["outputdir"] + "/" + config["outputpairfile"]
 
     
@@ -78,6 +78,9 @@ def run_pipeline(config, verbose=0):
     elif "photoz_type" not in sourceargs:
         sourceargs["photoz_type"] = "_best"
 
+    # Do we want to randomly rotate sources for shape noise estimates
+    if "random_rotate_seed" in config:
+        wpipe.setup_random_rotate(config["random_rotate_seed"])
     
     while not done:
         itern = itern + 1
