@@ -340,6 +340,11 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
 
         double sc1new=-sc1*cos(2*phirot)+sc2*sin(2*phirot);
         double sc2new=sc2*cos(2*phirot)+sc1*(sin(2*phirot));
+
+        se1 = se1new;
+        se2 = se2new;
+        sc1 = sc1new;
+        sc2 = sc2new;
     }
 
     double c_sdec=cos(sdec);
