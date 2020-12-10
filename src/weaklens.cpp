@@ -16,6 +16,7 @@ weaklens::weaklens()
     R2bins = 100;
     R2diff = (R2max-R2min)/R2bins;
     verbose=true;
+    random_rotate=false;
 
     sumdsig_num = (double *)calloc(rbins,sizeof(double));
     sumdcross_num = (double *)calloc(rbins,sizeof(double));
@@ -94,6 +95,7 @@ weaklens::weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool 
     sumwls_R2allbins = (double *)calloc(rbins,sizeof(double));
 
     verbose=xverbose;
+    random_rotate=false;
 
     // ========================================================
     // Initialize cosmology
@@ -180,6 +182,10 @@ weaklens::~weaklens(){
     }
     if (foutput_lens_source_pairs!=NULL){
        fclose(foutput_lens_source_pairs);
+    }
+    if (random_rotate){
+       gsl_rng_free (rng);
+       random_rotate=false;
     }
 }
 
@@ -326,6 +332,21 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
     double sc1 = (sc1_dp+sc1_nb);
     double sc2 = (sc2_dp+sc2_nb);
 
+    // Apply a random rotation if required
+    if (random_rotate){
+        double phirot = gsl_ran_flat(rng, 0, M_PI);
+        double se1new=-se1*cos(2*phirot)+se2*sin(2*phirot);
+        double se2new=se2*cos(2*phirot)+se1*(sin(2*phirot));
+
+        double sc1new=-sc1*cos(2*phirot)+sc2*sin(2*phirot);
+        double sc2new=sc2*cos(2*phirot)+sc1*(sin(2*phirot));
+
+        se1 = se1new;
+        se2 = se2new;
+        sc1 = sc1new;
+        sc2 = sc2new;
+    }
+
     double c_sdec=cos(sdec);
     double s_sdec=sin(sdec);
     double s_sra=sin(sra);
@@ -451,7 +472,7 @@ int weaklens::finalize_results(bool writeok){
     fprintf(stderr, "%e %e %e\n", logrmin, logrmax, logrdiff);
     FILE *fout=fopen(outfile, "w");
 
-    fprintf(fout, "# 0:bincenter 1:Deltasigma_num 2:Sumwls 3:Sumwlsms 4:SumwlsResp 5:DeltaSigma 6:Sumwls_by_sumwl 7:rmin/2+rmax/2 8:DeltaSigma_cross 9:Sum_srcwt_per_lens 10:TotalSum_srcwt 11:SN_ErrDeltaSigma 12:SN_ErrDeltaSigma_cross 13:Total_pairs 14:R2_selnbias\n");
+    fprintf(fout, "# 0:bincenter 1:Deltasigma_num 2:Sumwls 3:Sumwlsms 4:SumwlsResp 5:DeltaSigma 6:Sumwls_by_sumwl 7:rmin/2+rmax/2 8:DeltaSigma_cross 9:Sum_srcwt_per_lens 10:TotalSum_srcwt 11:SN_ErrDeltaSigma 12:SN_ErrDeltaSigma_cross 13:Total_pairs 14:R2_selnbias 15:sumct_num\n");
     for (int i=0;i<rbins;i++)
     {
         double rr = logrmin + (i+0.5)*logrdiff;
@@ -462,9 +483,10 @@ int weaklens::finalize_results(bool writeok){
         double R2selnbias_A = 0.00865;
         double R2selnbias = R2selnbias_A*sumwls_R2firstbin[i]/sumwls_R2allbins[i]/R2diff;
         /// These outputs should be pruned for clarity
-        fprintf(fout, "%e %le %le %le %le %le %le %e %le %le %le %le %le %le %le \n", rr, sumdsig_num[i], sumwls[i], sumwls_ms[i], sumwls_resp[i], sumdsig_num[i]/sumwls_ms[i]/2./Resp-sumct_num[i]/sumwls_ms[i], sumwls[i]/sumwl, rrmin/2+rrmax/2, sumdcross_num[i]/sumwls_ms[i]/2./Resp-sumcx_num[i]/sumwls_ms[i], sumdcount_num[i]/sumwl, sumdcount_num[i], sqrt(sumdsigsq_num[i])/sumwls_ms[i]/2./Resp, sqrt(sumdcrosssq_num[i])/sumwls_ms[i]/2./Resp, sumpairs[i], R2selnbias);
+        fprintf(fout, "%e %le %le %le %le %le %le %e %le %le %le %le %le %le %le  %le\n", rr, sumdsig_num[i], sumwls[i], sumwls_ms[i], sumwls_resp[i], sumdsig_num[i]/sumwls_ms[i]/2./Resp-sumct_num[i]/sumwls_ms[i], sumwls[i]/sumwl, rrmin/2+rrmax/2, sumdcross_num[i]/sumwls_ms[i]/2./Resp-sumcx_num[i]/sumwls_ms[i], sumdcount_num[i]/sumwl, sumdcount_num[i], sqrt(sumdsigsq_num[i])/sumwls_ms[i]/2./Resp, sqrt(sumdcrosssq_num[i])/sumwls_ms[i]/2./Resp, sumpairs[i], R2selnbias,sumct_num[i]);
     }
-    if(writeok) fprintf(fout, "#OK\n");
+
+    if (writeok) fprintf(fout, "#OK\n");
     fclose(fout);
     return 0;
 }
@@ -653,4 +675,13 @@ double weaklens::set_zlmax(double integral_cut_zdiff, double integral_cut_zmax, 
         }
     }
     return zlmax-integral_cut_zdiff;
+}
+
+int weaklens::setup_random_rotate(int Nseed){
+    random_rotate=true;
+    gsl_rng_env_setup();
+    rngtype = gsl_rng_default;
+    rng = gsl_rng_alloc (rngtype);
+    gsl_rng_set(rng, (unsigned long int)Nseed);
+    return 0;
 }
