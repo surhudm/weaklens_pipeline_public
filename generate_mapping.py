@@ -1,4 +1,5 @@
 from astropy.io import fits as pyfits 
+import sys
 from glob import glob
 import numpy as np
 
@@ -15,29 +16,57 @@ for pz in ["mlz", "frankenz", "mizuki", "ephor"]:
 
 #for field in ["AEGIS", "GAMA09H", "GAMA15H", "HECTOMAP", "VVDS", "WIDE12H", "XMM"]:
 
-fp = open("DataStore/S16A_v2.0/Mapping_from_Rachel_catalogs_to_Hironao_catalogs.dat", "w")
-fp.write("field tract begin end matched\n")
-for field in ["AEGIS", "GAMA09H", "GAMA15H", "HECTOMAP", "VVDS", "WIDE12H", "XMM"]:
-    # Read the filename
-    #hdulist = pyfits.open("%s.fits" % (field))
-    #hdulist = pyfits.open("DataStore/Blinded_S16A_v2.0/hsc-blind/%s_no_m.fits" % (field))
-    hdulist = pyfits.open("DataStore/Calibrated_S16A_v2.0/%s_calibrated.fits" % (field))
-    data = hdulist[1].data
-    object_id = data["object_id"]
-    begin = 0
-    list_of_tracts = glob("DataStore/S16A_v2.0/%s_tracts/*_pz_pdf_mizuki.fits" % (field))
-    list_of_tracts = np.sort([int(tract.split("_pz")[0].split("/")[1]) for tract in list_of_tracts])
+if sys.argv[1] == "S16A_v2.0":
+    fp = open("DataStore/S16A_v2.0/Mapping_from_Rachel_catalogs_to_Hironao_catalogs.dat", "w")
+    fp.write("field tract begin end matched\n")
+    for field in ["AEGIS", "GAMA09H", "GAMA15H", "HECTOMAP", "VVDS", "WIDE12H", "XMM"]:
+        # Read the filename
+        #hdulist = pyfits.open("%s.fits" % (field))
+        #hdulist = pyfits.open("DataStore/Blinded_S16A_v2.0/hsc-blind/%s_no_m.fits" % (field))
+        hdulist = pyfits.open("DataStore/Calibrated_S16A_v2.0/%s_calibrated.fits" % (field))
+        data = hdulist[1].data
+        object_id = data["object_id"]
+        begin = 0
+        list_of_tracts = glob("DataStore/S16A_v2.0/%s_tracts/*_pz_pdf_mizuki.fits" % (field))
+        list_of_tracts = np.sort([int(tract.split("_pz")[0].split("/")[1]) for tract in list_of_tracts])
+    
+        for tract in list_of_tracts:
+            hdulist = pyfits.open("%s_tracts/%d_pz_pdf_mizuki.fits" % (field, tract))
+            obj_id = hdulist[1].data["object_id"]
+    
+            final = begin+obj_id.size    
+            if np.any(object_id[begin:final]!=obj_id):
+                exit(11)
+            else:
+                fp.write("%s %d %d %d %d \n" % (field, tract, begin, final, np.all(object_id[begin:final]==obj_id)))
+                import sys
+                sys.stderr.write("%s %d %d %d %d \n" % (field, tract, begin, final, np.all(object_id[begin:final]==obj_id)))
+   
+            begin = final * 1
 
-    for tract in list_of_tracts:
-        hdulist = pyfits.open("%s_tracts/%d_pz_pdf_mizuki.fits" % (field, tract))
-        obj_id = hdulist[1].data["object_id"]
-
-        final = begin+obj_id.size    
-        if np.any(object_id[begin:final]!=obj_id):
-            exit(11)
-        else:
-            fp.write("%s %d %d %d %d \n" % (field, tract, begin, final, np.all(object_id[begin:final]==obj_id)))
-            import sys
-            sys.stderr.write("%s %d %d %d %d \n" % (field, tract, begin, final, np.all(object_id[begin:final]==obj_id)))
-
-        begin = final * 1
+if sys.argv[1] == "S19A_v2.0":
+    fp = open("DataStore/S19A_v2.0/Mapping_from_blinded_catalogs_to_shape_catalogs.dat", "w")
+    fp.write("field tract begin end matched\n")
+    for field in ["GAMA09H", "GAMA15H", "HECTOMAP", "VVDS", "WIDE12H", "XMM"]:
+        # Read the filename
+        hdulist = pyfits.open("DataStore/Blinded_S19A_v2.0/%s_blinded_0_m.fits" % (field))
+        data = hdulist[1].data
+        object_id = data["object_id"]
+        begin = 0
+        list_of_tracts = glob("DataStore/S19A_v2.0/%s_tracts/*_no_m.fits" % (field))
+        # DataStore/S19A_v2.0/GAMA09H_tracts/9084_pz_pdf_dnnz.fits
+        list_of_tracts = np.sort([int(tract.split("_no")[0].split("/")[-1]) for tract in list_of_tracts])
+    
+        for tract in list_of_tracts:
+            hdulist = pyfits.open("DataStore/S19A_v2.0/%s_tracts/%d_no_m.fits" % (field, tract))
+            obj_id = hdulist[1].data["object_id"]
+    
+            final = begin+obj_id.size    
+            if np.any(object_id[begin:final]!=obj_id):
+                exit(11)
+            else:
+                fp.write("%s %d %d %d %d \n" % (field, tract, begin, final, np.all(object_id[begin:final]==obj_id)))
+                import sys
+                sys.stderr.write("%s %d %d %d %d \n" % (field, tract, begin, final, np.all(object_id[begin:final]==obj_id)))
+    
+            begin = final * 1

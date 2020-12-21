@@ -11,15 +11,20 @@ weaklens::weaklens()
     logrdiff=(logrmax-logrmin)/rbins;
     sprintf(outfile, "Debug.dat");
     foutput_lens_source_pairs=NULL;
+
+    // The values are for version 1, version 2 are set in setup_version
     R2min = 0.3;
-    R2max = 1.0;
-    R2bins = 100;
-    R2diff = (R2max-R2min)/R2bins;
+    R2diff = 0.007;
+    apmax = 25.5;
+    apdiff = 0.025;
     verbose=true;
+    version = 1;
     random_rotate=false;
 
     sumdsig_num = (double *)calloc(rbins,sizeof(double));
     sumdcross_num = (double *)calloc(rbins,sizeof(double));
+    sumdsig_psf_num = (double *)calloc(rbins,sizeof(double));
+    sumdcross_psf_num = (double *)calloc(rbins,sizeof(double));
 
     sumct_num = (double *)calloc(rbins,sizeof(double));
     sumcx_num = (double *)calloc(rbins,sizeof(double));
@@ -34,6 +39,9 @@ weaklens::weaklens()
 
     sumwls_R2firstbin = (double *)calloc(rbins,sizeof(double));
     sumwls_R2allbins = (double *)calloc(rbins,sizeof(double));
+
+    sumwls_aplastbin = (double *)calloc(rbins,sizeof(double));
+    sumwls_apallbins = (double *)calloc(rbins,sizeof(double));
 
 
     // ========================================================
@@ -57,7 +65,7 @@ weaklens::weaklens()
 
 }
 
-weaklens::weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool xverbose, double xOmegam, char *output_lens_source_pairs, double xR2min, double xR2max, int xR2bins)
+weaklens::weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool xverbose, double xOmegam, char *output_lens_source_pairs, double xR2min, double xR2diff, double xapmax, double xapdiff)
 {
     rmin=xrmin;
     rmax=xrmax;
@@ -73,12 +81,14 @@ weaklens::weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool 
         foutput_lens_source_pairs=NULL;
     }
     R2min = xR2min;
-    R2max = xR2max;
-    R2bins = xR2bins;
-    R2diff = (R2max-R2min)/R2bins;
+    R2diff = xR2diff;
+    apmax = xapmax;
+    apdiff = xapdiff;
 
     sumdsig_num = (double *)calloc(rbins,sizeof(double));
     sumdcross_num = (double *)calloc(rbins,sizeof(double));
+    sumdsig_psf_num = (double *)calloc(rbins,sizeof(double));
+    sumdcross_psf_num = (double *)calloc(rbins,sizeof(double));
 
     sumct_num = (double *)calloc(rbins,sizeof(double));
     sumcx_num = (double *)calloc(rbins,sizeof(double));
@@ -94,7 +104,11 @@ weaklens::weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool 
     sumwls_R2firstbin = (double *)calloc(rbins,sizeof(double));
     sumwls_R2allbins = (double *)calloc(rbins,sizeof(double));
 
+    sumwls_aplastbin = (double *)calloc(rbins,sizeof(double));
+    sumwls_apallbins = (double *)calloc(rbins,sizeof(double));
+
     verbose=xverbose;
+    version = 1;
     random_rotate=false;
 
     // ========================================================
@@ -120,6 +134,8 @@ weaklens::weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool 
 
 weaklens::~weaklens(){
     free(sumdsig_num);
+    free(sumdsig_psf_num);
+    free(sumdcross_psf_num);
     free(sumdsigsq_num);
     free(sumct_num);
     free(sumcx_num);
@@ -132,6 +148,9 @@ weaklens::~weaklens(){
     free(sumpairs);
     free(sumwls_R2firstbin);
     free(sumwls_R2allbins);
+    free(sumwls_aplastbin);
+    free(sumwls_apallbins);
+
     delete cosmo;
     if (verbose){
         fprintf(stderr, "Freed memory related to cosmology and the dsigma arrays\n");
@@ -292,7 +311,7 @@ int weaklens::test_searchrecord(){
     return 0;
 }
 
-int weaklens::process_source(double sra, double sdec, double se1, double se2, double swt, double srms_e, double smcat, double sc1_dp, double sc2_dp, double szbest, double sR2, bool usepdf, double integral_cut_zl, double integral_cut_zdiff, double integral_cut_Pth, double integral_cut_zmax)
+int weaklens::process_source(double sra, double sdec, double se1, double se2, double swt, double srms_e, double smcat, double sc1_dp, double sc2_dp, double szbest, double sR2, bool usepdf, double integral_cut_zl, double integral_cut_zdiff, double integral_cut_Pth, double integral_cut_zmax, double smag_ap, double sep1, double sep2)
 {
     return process_source( sra,  sdec,  se1,  se2,  swt,  srms_e,  smcat,  sc1_dp,  sc2_dp, 0.0, 0.0, szbest, sR2, usepdf, integral_cut_zl, integral_cut_zdiff, integral_cut_Pth, integral_cut_zmax);
 }
@@ -300,10 +319,10 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
 /// integral_cut_zl > 0.0 => \int_{integral_cut_zl+zdiff}^{zmax} P(z) dz > Pth to use the source
 /// integral_cut_zl = -99.0 => Use all sources with their PDFs
 /// integral_cut_zl = -49.0 => \int_{Actual zlens+zdiff}^{zmax} P(z) dz > Pth to use the source "Not implemented yet"
-int weaklens::process_source(double sra, double sdec, double se1, double se2, double swt, double srms_e, double smcat, double sc1_dp, double sc2_dp, double sc1_nb, double sc2_nb, double szbest, double sR2, bool usepdf, double integral_cut_zl, double integral_cut_zdiff, double integral_cut_Pth, double integral_cut_zmax)
+int weaklens::process_source(double sra, double sdec, double se1, double se2, double swt, double srms_e, double smcat, double sc1_dp, double sc2_dp, double sc1_nb, double sc2_nb, double szbest, double sR2, bool usepdf, double integral_cut_zl, double integral_cut_zdiff, double integral_cut_Pth, double integral_cut_zmax, double smag_ap, double sep1, double sep2)
 {
 
-    if(std::isnan(sra) || std::isnan(sdec) || std::isnan(se1) || std::isnan(se2) || std::isnan(swt) || std::isnan(smcat) || std::isnan(sc1_dp) || std::isnan(sc2_dp) || std::isnan(sc1_nb) || std::isnan(sc2_nb) || std::isnan(szbest) || std::isnan(srms_e) || (sR2<R2min) || (sR2>R2max)){
+    if(std::isnan(sra) || std::isnan(sdec) || std::isnan(se1) || std::isnan(se2) || std::isnan(swt) || std::isnan(smcat) || std::isnan(sc1_dp) || std::isnan(sc2_dp) || std::isnan(sc1_nb) || std::isnan(sc2_nb) || std::isnan(szbest) || std::isnan(srms_e) || (sR2<R2min) || (smag_ap>apmax) || std::isnan(sep1) || std::isnan(sep2)){
         return 1;
     }
     if(!lenses_finalized){
@@ -341,10 +360,16 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
         double sc1new=-sc1*cos(2*phirot)+sc2*sin(2*phirot);
         double sc2new=sc2*cos(2*phirot)+sc1*(sin(2*phirot));
 
+        double sep1new=-sep1*cos(2*phirot)+sep2*sin(2*phirot);
+        double sep2new=sep2*cos(2*phirot)+sep1*(sin(2*phirot));
+
         se1 = se1new;
         se2 = se2new;
         sc1 = sc1new;
         sc2 = sc2new;
+        sep1 = sep1new;
+        sep2 = sep2new;
+
     }
 
     double c_sdec=cos(sdec);
@@ -359,6 +384,7 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
     double sigc_inv_fac=1.e12*4.*M_PI*gee/(cee*cee)/dCofzs;
 
     bool src_in_R2firstbin = (sR2<R2min+R2diff);
+    bool src_in_aplastbin = (smag_ap>apmax-apdiff);
 
     // Ok now get results
     kdtree2::KDTreeResultVector res;
@@ -422,6 +448,9 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
  
         double ct=-sc1*(2*cosphi*cosphi-1)+sc2*(2*sinphi*cosphi);
         double cx=sc2*(2*cosphi*cosphi-1)+sc1*(2*sinphi*cosphi);
+
+        double eptan=-sep1*(2*cosphi*cosphi-1)+sep2*(2*sinphi*cosphi);
+        double epcross=sep2*(2*cosphi*cosphi-1)+sep1*(2*sinphi*cosphi);
  
         // Test if we want to output all the lens source pairs
         // We shall output for every pair: Lens_num, lens_ra, lens_dec, r, etan, ecross, wt[xx], swt, av_sigc_inv, 1+smcat, 1-srms_e**2
@@ -431,13 +460,15 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
             fprintf(stderr, "Wont print as foutput is NULL\n");
         }*/
         
-        if (std::isnan(etan) || std::isnan(ecross))
+        if (std::isnan(etan) || std::isnan(ecross) || std::isnan(eptan) || std::isnan(epcross) )
              continue;
 
         sumdsig_num[rpbin]+=(etan*wls_by_av_sigc_inv);
+        sumdsig_psf_num[rpbin]+=(eptan*wls_by_av_sigc_inv);
         sumct_num[rpbin]+=(ct*wls_by_av_sigc_inv);
         sumdsigsq_num[rpbin]+=pow(etan*wls_by_av_sigc_inv, 2);
         sumdcross_num[rpbin]+=(ecross*wls_by_av_sigc_inv);
+        sumdcross_psf_num[rpbin]+=(epcross*wls_by_av_sigc_inv);
         sumcx_num[rpbin]+=(cx*wls_by_av_sigc_inv);
         sumdcrosssq_num[rpbin]+=pow(ecross*wls_by_av_sigc_inv, 2);
         sumdcount_num[rpbin]+=(wt[xx]);
@@ -448,6 +479,8 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
 
         if (src_in_R2firstbin) sumwls_R2firstbin[rpbin] += wls;
         sumwls_R2allbins[rpbin] += wls;
+        if (src_in_aplastbin) sumwls_aplastbin[rpbin] += wls;
+        sumwls_apallbins[rpbin] += wls;
 
         //fprintf(dfile, "%d %.18le %.18le %.18le %.18le %.18le\n", xx, cosangle, sinangle, etan, wls, av_sigc_inv);
         //fprintf(dfile, "%d %.18le %.18le %.18le %.18le %.18le %.18le %.18le %.18le\n", xx, datacen[3*xx], datacen[3*xx+1], datacen[3*xx+2], sx, sy, sz, wls, av_sigc_inv);
@@ -472,7 +505,7 @@ int weaklens::finalize_results(bool writeok){
     fprintf(stderr, "%e %e %e\n", logrmin, logrmax, logrdiff);
     FILE *fout=fopen(outfile, "w");
 
-    fprintf(fout, "# 0:bincenter 1:Deltasigma_num 2:Sumwls 3:Sumwlsms 4:SumwlsResp 5:DeltaSigma 6:Sumwls_by_sumwl 7:rmin/2+rmax/2 8:DeltaSigma_cross 9:Sum_srcwt_per_lens 10:TotalSum_srcwt 11:SN_ErrDeltaSigma 12:SN_ErrDeltaSigma_cross 13:Total_pairs 14:R2_selnbias 15:sumct_num\n");
+    fprintf(fout, "# 0:bincenter 1:Deltasigma_num 2:Sumwls 3:Sumwlsms 4:SumwlsResp 5:DeltaSigma_selnbias_corrected 6:Sumwls_by_sumwl 7:rmin/2+rmax/2 8:DeltaSigma_cross 9:Sum_srcwt_per_lens 10:TotalSum_srcwt 11:SN_ErrDeltaSigma 12:SN_ErrDeltaSigma_cross 13:Total_pairs 14:m_selnbias 15:sumct_num 16: a_selnbias\n");
     for (int i=0;i<rbins;i++)
     {
         double rr = logrmin + (i+0.5)*logrdiff;
@@ -480,13 +513,28 @@ int weaklens::finalize_results(bool writeok){
         double rrmax = pow(10., logrmin + (i+1)*logrdiff);
         double Resp = sumwls_resp[i]/sumwls[i];
 
-        double R2selnbias_A = 0.00865;
-        double R2selnbias = R2selnbias_A*sumwls_R2firstbin[i]/sumwls_R2allbins[i]/R2diff;
+        double R2selnbias_A=0.0;
+        double apselnbias_A=0.0;
+        double R2selnbias_A_add = 0.0;
+        double apselnbias_A_add = 0.0;
+        if (version==1){
+            R2selnbias_A = 0.00865;
+        } else if (version==2){
+            R2selnbias_A = 0.01919;
+            apselnbias_A = -0.05854;
+            R2selnbias_A_add = 0.00635;
+            apselnbias_A_add = -0.00627;
+        }
+        double mselnbias = 0.0;
+        double aselnbias = 0.0;
+        mselnbias = R2selnbias_A*sumwls_R2firstbin[i]/sumwls_R2allbins[i]/R2diff + apselnbias_A*sumwls_aplastbin[i]/sumwls_apallbins[i]/apdiff; 
+        aselnbias = R2selnbias_A_add*sumwls_R2firstbin[i]/sumwls_R2allbins[i]/R2diff + apselnbias_A_add*sumwls_aplastbin[i]/sumwls_apallbins[i]/apdiff; 
+
         /// These outputs should be pruned for clarity
-        fprintf(fout, "%e %le %le %le %le %le %le %e %le %le %le %le %le %le %le  %le\n", rr, sumdsig_num[i], sumwls[i], sumwls_ms[i], sumwls_resp[i], sumdsig_num[i]/sumwls_ms[i]/2./Resp-sumct_num[i]/sumwls_ms[i], sumwls[i]/sumwl, rrmin/2+rrmax/2, sumdcross_num[i]/sumwls_ms[i]/2./Resp-sumcx_num[i]/sumwls_ms[i], sumdcount_num[i]/sumwl, sumdcount_num[i], sqrt(sumdsigsq_num[i])/sumwls_ms[i]/2./Resp, sqrt(sumdcrosssq_num[i])/sumwls_ms[i]/2./Resp, sumpairs[i], R2selnbias,sumct_num[i]);
+        fprintf(fout, "%e %le %le %le %le %le %le %e %le %le %le %le %le %le %le  %le %le\n", rr, sumdsig_num[i], sumwls[i], sumwls_ms[i], sumwls_resp[i], (sumdsig_num[i]/sumwls_ms[i]/2./Resp-sumct_num[i]/sumwls_ms[i] - aselnbias*sumdsig_psf_num[i]/sumwls[i])/(1.0+mselnbias), sumwls[i]/sumwl, rrmin/2+rrmax/2, sumdcross_num[i]/sumwls_ms[i]/2./Resp-sumcx_num[i]/sumwls_ms[i]-aselnbias*sumdcross_psf_num[i]/sumwls[i], sumdcount_num[i]/sumwl, sumdcount_num[i], sqrt(sumdsigsq_num[i])/sumwls_ms[i]/2./Resp, sqrt(sumdcrosssq_num[i])/sumwls_ms[i]/2./Resp, sumpairs[i], mselnbias, sumct_num[i], aselnbias*sumdsig_psf_num[i]/sumwls[i]);
     }
 
-    if (writeok) fprintf(fout, "#OK\n");
+    if (writeok) fprintf(fout, "#OK R2selnbias is already applied to column index 5 now\n");
     fclose(fout);
     return 0;
 }
@@ -684,4 +732,20 @@ int weaklens::setup_random_rotate(int Nseed){
     rng = gsl_rng_alloc (rngtype);
     gsl_rng_set(rng, (unsigned long int)Nseed);
     return 0;
+}
+
+void weaklens::setup_version(int ver){
+    version = ver;
+
+    if (version==1){
+        apmax = 25.5;
+        apdiff = 0.025;
+        R2min = 0.3;
+        R2diff = 0.007;
+    }else if (version==2){
+        apmax = 25.5;
+        apdiff = 0.025;
+        R2min = 0.3;
+        R2diff = 0.01;
+    }
 }

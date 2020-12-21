@@ -676,6 +676,195 @@ def source_select(sourceargs, chunksize):
     -    pofzflag: Flag array to indicate whether to use the photoz of the galaxy or not
 
     """
+    if sourceargs['type'] == "hsc-wide-s19a_v2.0" and sourceargs['filetype'] == "fits" and not sourceargs["fullpofz"]:
+
+        # This variable iterates over the different fields in the catalog
+        itern = sourceargs['iter']
+        if itern == 0:
+            if not sourceargs["blinded"]:
+                sys.stderr.write("All source catalogs in S19A_v2.0 are blinded. Aborting\n")
+                exit(11)
+            else:
+                sourceargs["df"] = pandas.read_csv("DataStore/S19A_v2.0/Mapping_from_blinded_catalogs_to_shape_catalogs.dat", delim_whitespace=1)
+            if "usefield" in sourceargs:
+                restidx = sourceargs["df"].field.values==sourceargs["usefield"]
+                sourceargs["df"] = sourceargs["df"][restidx]
+                print "Using only field", sourceargs["usefield"]
+
+        datagal = 0
+        Ngal = 0
+        pofz = 0
+        status = not (itern<(sourceargs['df'].field.values.size))
+        if status:
+            print("Uh oh, problem here")
+            return datagal, sourceargs, Ngal, status, pofz, 0., 0.
+
+        field = sourceargs["df"].field.values[itern]
+        tract = sourceargs["df"].tract.values[itern]
+        begin = sourceargs["df"].begin.values[itern]
+        end = sourceargs["df"].end.values[itern]
+        
+        # Initialize list of tracts within a given field
+        if begin == 0:
+            # Define the shape catalog file from Rachel to read from for this field
+            if sourceargs["blinded"]:
+                # Decrypt the Delta m value, if sourceargs["dm"] not set already
+                fname = "DataStore/Blinded_S19A_v2.0/%s_blinded_%d_m.fits" % (field, sourceargs["blindnumber"])
+                if "dm" not in sourceargs:
+                    try:
+                        hdulist = pyfits.open(fname, memmap=True)
+                        msg = hdulist[0].header["DM1"]
+                        sourceargs['dm'] = float(decrypt_string(FITS_to_PGP(msg)))
+                    except:
+                        print "GPG decryption failed, check your gpg-agent"
+                        exit(12)
+                # The commented line is memory intensive
+                #sourceargs["fits"] = fitsio.FITS("%s[1][col *, i_hsmshaperegauss_derived_shear_bias_m = i_hsmshaperegauss_derived_shear_bias_m - %f ]" % (fname, sourceargs['dm']))[1]
+                # Instead read the file as it is and then subtract off later
+                sourceargs["fits_mblind"] = fitsio.FITS("%s" % (fname))[1]
+
+        # Read in the photoz file for the current field, tract
+        try:
+            hdulist = pyfits.open("DataStore/S19A_v2.0/%s_tracts/%d_pz.fits" % (field, tract))
+            data = hdulist[1].data
+            pofz = data["%s_photoz%s" % (sourceargs['pofz_type'], sourceargs['photoz_estimate']) ]
+            pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<sourceargs['photoz_risk_best_cut'])
+        except:
+            pofz = 0
+            pofzflag = np.zeros(end-begin, dtype=bool)
+
+        # Read in the shape values for the current field, tract, the row filtering specification indexes rows from 1 - Nrecords
+        sourceargs["fits"] = pyfits.open("DataStore/S19A_v2.0/%s_tracts/%d_no_m.fits" % (field, tract))[1].data
+        wheremask = sourceargs['fits_mblind'].where("#row>%d && #row<=%d" % (begin, end))
+
+        #datagal = sourceargs['fits'][1]["ira", "idec", "i_hsmshaperegauss_e1", "i_hsmshaperegauss_e2", "i_hsmshaperegauss_derived_shear_bias_c1", "i_hsmshaperegauss_derived_shear_bias_c2", "i_hsmshaperegauss_derived_shear_bias_m", "i_hsmshaperegauss_derived_shape_weight", "i_hsmshaperegauss_derived_rms_e"][wheremask]
+        #datagal = sourceargs['fits']["ira", "idec", "i_hsmshaperegauss_e1", "i_hsmshaperegauss_e2", "i_hsmshaperegauss_derived_shape_weight", "i_hsmshaperegauss_derived_rms_e", "i_hsmshaperegauss_derived_shear_bias_m", "i_hsmshaperegauss_derived_shear_bias_c1", "i_hsmshaperegauss_derived_shear_bias_c2"][wheremask]
+        ira = sourceargs['fits']["i_ra"]
+        idec = sourceargs['fits']["i_dec"]
+        ishape_hsm_regauss_e1 = sourceargs['fits']["i_hsmshaperegauss_e1"]
+        ishape_hsm_regauss_e2 = sourceargs['fits']["i_hsmshaperegauss_e2"]
+        ishape_hsm_regauss_derived_shape_weight = sourceargs['fits']["i_hsmshaperegauss_derived_weight"]
+        ishape_hsm_regauss_derived_rms_e = sourceargs['fits']["i_hsmshaperegauss_derived_rms_e"]
+        ishape_hsm_regauss_derived_shear_bias_m = sourceargs['fits_mblind']["i_hsmshaperegauss_derived_shear_bias_m"][wheremask] - sourceargs["dm"]
+        ishape_hsm_regauss_derived_shear_bias_c1 = sourceargs['fits']["i_hsmshaperegauss_derived_shear_bias_c1"]
+        ishape_hsm_regauss_derived_shear_bias_c2 = sourceargs['fits']["i_hsmshaperegauss_derived_shear_bias_c2"]
+        ishape_hsm_regauss_resolution = sourceargs['fits']["i_hsmshaperegauss_resolution"]
+        ishape_psf_shape11 = sourceargs['fits']["i_sdssshape_psf_shape11"]
+        ishape_psf_shape22 = sourceargs['fits']["i_sdssshape_psf_shape22"]
+        ishape_psf_shape12 = sourceargs['fits']["i_sdssshape_psf_shape12"]
+        ishape_psf_e1 = (ishape_psf_shape11-ishape_psf_shape22)/(ishape_psf_shape11+ishape_psf_shape22)
+        ishape_psf_e2 = 2*ishape_psf_shape12/(ishape_psf_shape11+ishape_psf_shape22)
+        i_apertureflux_10_mag = sourceargs['fits']["i_apertureflux_10_mag"]
+        datagal = np.array([ira, idec, ishape_hsm_regauss_e1, ishape_hsm_regauss_e2, ishape_hsm_regauss_derived_shape_weight, ishape_hsm_regauss_derived_rms_e, ishape_hsm_regauss_derived_shear_bias_m, ishape_hsm_regauss_derived_shear_bias_c1, ishape_hsm_regauss_derived_shear_bias_c2, ishape_hsm_regauss_resolution, i_apertureflux_10_mag, ishape_psf_e1, ishape_psf_e2]).T
+
+        datagalflag = sourceargs['fits']["weak_lensing_flag"]
+
+        sourceargs['iter'] = sourceargs['iter'] + 1
+
+        Ngal = pofzflag.size
+        status = 0
+        
+        return datagal, sourceargs, Ngal, status, pofz, datagalflag, pofzflag
+
+    if sourceargs['type'] == "hsc-wide-s19a_v2.0" and sourceargs['filetype'] == "fits" and  sourceargs["fullpofz"]:
+
+        # This variable iterates over the different fields in the catalog
+        itern = sourceargs['iter']
+        if itern == 0:
+            if not sourceargs["blinded"]:
+                sys.stderr.write("All source catalogs in S19A_v2.0 are blinded. Aborting\n")
+                exit(11)
+            else:
+                sourceargs["df"] = pandas.read_csv("DataStore/S19A_v2.0/Mapping_from_blinded_catalogs_to_shape_catalogs.dat", delim_whitespace=1)
+            if "usefield" in sourceargs:
+                restidx = sourceargs["df"].field.values==sourceargs["usefield"]
+                sourceargs["df"] = sourceargs["df"][restidx]
+                print "Using only field", sourceargs["usefield"]
+
+        datagal = 0
+        Ngal = 0
+        pofz = 0
+        status = not (itern<(sourceargs['df'].field.values.size))
+        if status:
+            return datagal, sourceargs, Ngal, status, pofz, 0., 0.
+
+        field = sourceargs["df"].field.values[itern]
+        tract = sourceargs["df"].tract.values[itern]
+        begin = sourceargs["df"].begin.values[itern]
+        end = sourceargs["df"].end.values[itern]
+        
+        # Initialize list of tracts within a given field
+        if begin == 0:
+            # Define the shape catalog file from Rachel to read from for this field
+            if sourceargs["blinded"]:
+                # Decrypt the Delta m value, if sourceargs["dm"] not set already
+                fname = "DataStore/Blinded_S19A_v2.0/%s_blinded_%d_m.fits" % (field, sourceargs["blindnumber"])
+                if "dm" not in sourceargs:
+                    try:
+                        hdulist = pyfits.open(fname, memmap=True)
+                        msg = hdulist[0].header["DM1"]
+                        sourceargs['dm'] = float(decrypt_string(FITS_to_PGP(msg)))
+                    except:
+                        print "GPG decryption failed, check your gpg-agent"
+                        exit(12)
+                # The commented line is memory intensive
+                #sourceargs["fits"] = fitsio.FITS("%s[1][col *, i_hsmshaperegauss_derived_shear_bias_m = i_hsmshaperegauss_derived_shear_bias_m - %f ]" % (fname, sourceargs['dm']))[1]
+                # Instead read the file as it is and then subtract off later
+                sourceargs["fits_mblind"] = fitsio.FITS("%s" % (fname))[1]
+
+        # Read in the photoz file for the current field, tract
+        try:
+        #if 1:
+            hdulist = pyfits.open("DataStore/S19A_v2.0/%s_tracts/%d_pz.fits" % (field, tract))
+            data = hdulist[1].data
+            pofz = data["%s_photoz_best" % (sourceargs['pofz_type']) ]
+            pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<sourceargs['photoz_risk_best_cut'])
+        except:
+        #else:
+            pofz = 0
+            pofzflag = np.zeros(end-begin, dtype=bool)
+
+        # Read in the shape values for the current field, tract
+        sourceargs["fits"] = pyfits.open("DataStore/S19A_v2.0/%s_tracts/%d_no_m.fits" % (field, tract))[1].data
+        wheremask = sourceargs['fits_mblind'].where("#row>%d && #row<=%d" % (begin, end))
+
+        #datagal = sourceargs['fits']["ira", "idec", "i_hsmshaperegauss_e1", "i_hsmshaperegauss_e2", "i_hsmshaperegauss_derived_shear_bias_c1", "i_hsmshaperegauss_derived_shear_bias_c2", "i_hsmshaperegauss_derived_shape_weight", "i_hsmshaperegauss_derived_rms_e"][wheremask]
+        #datagalflag = sourceargs['fits'][1]["weak_lensing_flag"][wheremask]
+
+        ira = sourceargs['fits']["i_ra"]
+        idec = sourceargs['fits']["i_dec"]
+        ishape_hsm_regauss_e1 = sourceargs['fits']["i_hsmshaperegauss_e1"]
+        ishape_hsm_regauss_e2 = sourceargs['fits']["i_hsmshaperegauss_e2"]
+        ishape_hsm_regauss_derived_shape_weight = sourceargs['fits']["i_hsmshaperegauss_derived_weight"]
+        ishape_hsm_regauss_derived_rms_e = sourceargs['fits']["i_hsmshaperegauss_derived_rms_e"]
+        ishape_hsm_regauss_derived_shear_bias_m = sourceargs['fits_mblind']["i_hsmshaperegauss_derived_shear_bias_m"][wheremask] - sourceargs["dm"]
+        ishape_hsm_regauss_derived_shear_bias_c1 = sourceargs['fits']["i_hsmshaperegauss_derived_shear_bias_c1"]
+        ishape_hsm_regauss_derived_shear_bias_c2 = sourceargs['fits']["i_hsmshaperegauss_derived_shear_bias_c2"]
+        ishape_hsm_regauss_resolution = sourceargs['fits']["i_hsmshaperegauss_resolution"]
+        ishape_psf_shape11 = sourceargs['fits']["i_sdssshape_psf_shape11"]
+        ishape_psf_shape22 = sourceargs['fits']["i_sdssshape_psf_shape22"]
+        ishape_psf_shape12 = sourceargs['fits']["i_sdssshape_psf_shape12"]
+        ishape_psf_e1 = (ishape_psf_shape11-ishape_psf_shape22)/(ishape_psf_shape11+ishape_psf_shape22)
+        ishape_psf_e2 = 2*ishape_psf_shape12/(ishape_psf_shape11+ishape_psf_shape22)
+        i_apertureflux_10_mag = sourceargs['fits']["i_apertureflux_10_mag"]
+        datagal = np.array([ira, idec, ishape_hsm_regauss_e1, ishape_hsm_regauss_e2, ishape_hsm_regauss_derived_shape_weight, ishape_hsm_regauss_derived_rms_e, ishape_hsm_regauss_derived_shear_bias_m, ishape_hsm_regauss_derived_shear_bias_c1, ishape_hsm_regauss_derived_shear_bias_c2, ishape_hsm_regauss_resolution, i_apertureflux_10_mag, ishape_psf_e1, ishape_psf_e2]).T
+        datagalflag = sourceargs['fits']["weak_lensing_flag"]
+
+        try:
+            sourceargs['fitspofz'] = fitsio.FITS("DataStore/S19A_v2.0/%s_tracts/%d_pz_pdf_%s.fits" % (field, tract, sourceargs['pofz_type']))[1]
+
+            pofz = sourceargs['fitspofz']['PDF'][:]
+            pofz = pofz.reshape((pofz.shape[0], -1,))
+        except:
+            pofz = 0
+            pofzflag = np.zeros(end-begin, dtype=bool)
+
+        sourceargs['iter'] = sourceargs['iter'] + 1
+        Ngal = pofzflag.size
+        status = 0
+
+        return datagal, sourceargs, Ngal, status, pofz, datagalflag, pofzflag
+
     if sourceargs['type'] == "hsc-wide-s16a_v2.0" and sourceargs['filetype'] == "fits" and not sourceargs["fullpofz"]:
 
         # This variable iterates over the different fields in the catalog
@@ -859,370 +1048,12 @@ def source_select(sourceargs, chunksize):
 
         return datagal, sourceargs, Ngal, status, pofz, datagalflag, pofzflag
 
-
-    # S16A_v2.0 kept here for notes when required. This was before Rachel computed the calibration factors
-    if sourceargs['type'] == "hsc-wide-s16a_v2.0_old" and sourceargs['filetype'] == "fits" and not sourceargs["fullpofz"]:
-
-        itern = sourceargs['iter']
-        if itern == 0:
-            sourceargs['fits_list'] = glob.glob("DataStore/S16A_v2.0/*_tracts/*_pz.fits")
-            
-        if itern == len(sourceargs['fits_list']):
-            status = 1
-
-        datagal = 0
-        status = not (itern<len(sourceargs['fits_list']))
-        Ngal = 0
-        pofz = 0
-        if status:
-            return datagal, sourceargs, Ngal, status, pofz, 0., 0.
-
-        hdulist = pyfits.open(sourceargs['fits_list'][itern].split("_pz")[0] + ".fits")
-        data = hdulist[1].data
-        ira = data["ira"]
-        idec = data["idec"]
-
-        ishape_hsm_regauss_e1 = data["ishape_hsm_regauss_e1"]
-        ishape_hsm_regauss_e2 = data["ishape_hsm_regauss_e2"]
-        ishape_hsm_regauss_derived_bias_c1 = data["ishape_hsm_regauss_derived_bias_c1"]
-        ishape_hsm_regauss_derived_bias_c2 = data["ishape_hsm_regauss_derived_bias_c2"]
-        ishape_hsm_regauss_derived_bias_m = data["ishape_hsm_regauss_derived_bias_m"]
-        ishape_hsm_regauss_derived_weight = data["ishape_hsm_regauss_derived_weight"] 
-        ishape_hsm_regauss_derived_rms_e = data["ishape_hsm_regauss_derived_rms_e"] 
-        zeroarr = ishape_hsm_regauss_derived_bias_c1 * 0.0
-        datagalflag = data["weak_lensing_flag"]
-
-        datagal = np.array([ira, idec, ishape_hsm_regauss_e1, ishape_hsm_regauss_e2, ishape_hsm_regauss_derived_weight, ishape_hsm_regauss_derived_rms_e, ishape_hsm_regauss_derived_bias_m, ishape_hsm_regauss_derived_bias_c1, ishape_hsm_regauss_derived_bias_c2]).T
-
-        hdulist = pyfits.open(sourceargs['fits_list'][itern])
-        data = hdulist[1].data
-        pofz = data["%s_photoz_best" % (sourceargs['pofz_type']) ]
-        pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<sourceargs['photoz_risk_best_cut'])
-
-        sourceargs['iter'] = sourceargs['iter'] + 1
-        Ngal = pofz.size
-        status = 0
-        return datagal, sourceargs, Ngal, status, pofz, datagalflag, pofzflag
-
-    '''
-    if sourceargs['type'] == "hsc-wide-s16a_v2.0" and sourceargs['filetype'] == "fits" and  sourceargs["fullpofz"]:
-        itern = sourceargs['iter']
-        if itern == 0:
-            sourceargs['fits_list'] = glob.glob("DataStore/S16A_v2.0/*_tracts/*_%s.fits" % (sourceargs['pofz_type']))
-            
-        if itern == len(sourceargs['fits_list']):
-            status = 1
-
-        datagal = 0
-        status = not (itern<len(sourceargs['fits_list']))
-        Ngal = 0
-        pofz = 0
-        if status:
-            return datagal, sourceargs, Ngal, status, pofz, 0., 0.
-
-        tractnum = (sourceargs['fits_list'][itern].split("/")[-1]).split("_pz")[0]
-        tractreg = (sourceargs['fits_list'][itern].split("/")[2]).split("_tracts")[0]
-
-        hdulist = pyfits.open(sourceargs['fits_list'][itern].split("_pz_pdf_%s" % (sourceargs['pofz_type']))[0] + ".fits")
-        data = hdulist[1].data
-        ira = data["ira"]
-        idec = data["idec"]
-
-        ishape_hsm_regauss_e1 = data["ishape_hsm_regauss_e1"]
-        ishape_hsm_regauss_e2 = data["ishape_hsm_regauss_e2"]
-        ishape_hsm_regauss_derived_bias_c1 = data["ishape_hsm_regauss_derived_bias_c1"]
-        ishape_hsm_regauss_derived_bias_c2 = data["ishape_hsm_regauss_derived_bias_c2"]
-        ishape_hsm_regauss_derived_bias_m = data["ishape_hsm_regauss_derived_bias_m"]
-        ishape_hsm_regauss_derived_weight = data["ishape_hsm_regauss_derived_weight"] 
-        ishape_hsm_regauss_derived_rms_e = data["ishape_hsm_regauss_derived_rms_e"] 
-        zeroarr = ishape_hsm_regauss_derived_bias_c1 * 0.0
-        datagalflag = data["weak_lensing_flag"]
-
-        datagal = np.array([ira, idec, ishape_hsm_regauss_e1, ishape_hsm_regauss_e2, ishape_hsm_regauss_derived_weight, ishape_hsm_regauss_derived_rms_e, ishape_hsm_regauss_derived_bias_m, ishape_hsm_regauss_derived_bias_c1, ishape_hsm_regauss_derived_bias_c2, zeroarr, zeroarr]).T
-
-        hdulist = pyfits.open(sourceargs['fits_list'][itern].split("_pdf_%s" % sourceargs['pofz_type'])[0] + ".fits")
-        data = hdulist[1].data
-        if sourceargs['pofz_type'] == "frankenz":
-            pofzflag = (datagalflag == True)
-        elif sourceargs['pofz_type'] == "mizuki":
-            pofzflag = (datagalflag == True)
-        elif sourceargs['pofz_type'] == "mlz":
-            pofzflag = (datagalflag == True)
-        elif sourceargs['pofz_type'] == "ephor":
-            pofzflag = (datagalflag == True)
-
-        sourceargs['fitspofz'] = fitsio.FITS(sourceargs['fits_list'][itern])
-
-        pofz = sourceargs['fitspofz'][1]['P(z)'][:]
-        pofz = pofz.reshape((pofz.shape[0], -1,))
-
-        hdulist = pyfits.open("DataStore/S16A_v2.0/%s_tracts/%s_pz.fits" % (tractreg, tractnum) )
-        data = hdulist[1].data
-        pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<0.5)
-
-        sourceargs['iter'] = sourceargs['iter'] + 1
-        Ngal = np.shape(datagal)[0]
-        status = 0
-
-    if sourceargs['type'] == "mockhsc-wide-s16a_v2.0" and sourceargs['filetype'] == "fits" and  sourceargs["fullpofz"]:
-        rotation = sourceargs['rotation']
-        realization = sourceargs['realization']
-        itern = sourceargs['iter']
-        if itern == 0:
-            sourceargs['fits_list'] = glob.glob("DataStore/S16A_v2.0/*_tracts/*_%s.fits" % (sourceargs['pofz_type']))
-            #sourceargs['fits_list_2'] = glob.glob("DataStore/S16A_v2.0/*_tracts/*_pz.fits")
-
-        while itern<len(sourceargs['fits_list']):
-            tractnum = (sourceargs['fits_list'][itern].split("/")[-1]).split("_pz")[0]
-            tractreg = (sourceargs['fits_list'][itern].split("/")[2]).split("_tracts")[0]
-            print tractnum, tractreg
-            try:
-                mockname = "DataStore/Mocks_shape/%s/r%03d/rotmat%s/mock_%s.fits" % (tractreg, realization, rotation, tractnum)
-                print mockname
-                hdulistmock = pyfits.open(mockname)
-                datamock = hdulistmock[1].data
-                break
-            except:
-                itern = itern + 1
-                sourceargs['iter'] = itern
-        
-        if itern == len(sourceargs['fits_list']):
-            status = 1
-
-        datagal = 0
-        status = not (itern<len(sourceargs['fits_list']))
-        Ngal = 0
-        pofz = 0
-        if status:
-            return datagal, sourceargs, Ngal, status, pofz, 0., 0.
-
-        print itern, sourceargs['fits_list'][itern]
-        shapefile = sourceargs['fits_list'][itern].split("_pz_pdf_%s" % (sourceargs['pofz_type']))[0] + ".fits"
-        print shapefile
-        hdulist = pyfits.open(shapefile)
-        data = hdulist[1].data
-        ira = data["ira"]
-        idec = data["idec"]
-
-        ishape_hsm_regauss_e1 = datamock["e1_mock"].astype("float64")
-        ishape_hsm_regauss_e2 = datamock["e2_mock"].astype("float64")
-
-        ishape_hsm_regauss_derived_bias_c1 = data["ishape_hsm_regauss_derived_bias_c1"] * 0.0
-        ishape_hsm_regauss_derived_bias_c2 = data["ishape_hsm_regauss_derived_bias_c2"] * 0.0
-        ishape_hsm_regauss_derived_bias_m = data["ishape_hsm_regauss_derived_bias_m"] * 0.0
-        ishape_hsm_regauss_derived_weight = data["ishape_hsm_regauss_derived_weight"] 
-        ishape_hsm_regauss_derived_rms_e = data["ishape_hsm_regauss_derived_rms_e"] 
-        zeroarr = ishape_hsm_regauss_derived_bias_c1 * 0.0
-        datagalflag = data["weak_lensing_flag"]
-
-        datagal = np.array([ira, idec, ishape_hsm_regauss_e1, ishape_hsm_regauss_e2, ishape_hsm_regauss_derived_weight, ishape_hsm_regauss_derived_rms_e, ishape_hsm_regauss_derived_bias_m, ishape_hsm_regauss_derived_bias_c1, ishape_hsm_regauss_derived_bias_c2, zeroarr, zeroarr]).T
-
-        hdulist = pyfits.open(sourceargs['fits_list'][itern].split("_pdf_%s" % sourceargs['pofz_type'])[0] + ".fits")
-        data = hdulist[1].data
-        if sourceargs['pofz_type'] == "frankenz":
-            pofzflag = (datagalflag == True)
-        elif sourceargs['pofz_type'] == "mizuki":
-            pofzflag = (datagalflag == True)
-        elif sourceargs['pofz_type'] == "mlz":
-            pofzflag = (datagalflag == True)
-        elif sourceargs['pofz_type'] == "ephor":
-            pofzflag = (datagalflag == True)
-
-        sourceargs['fitspofz'] = fitsio.FITS(sourceargs['fits_list'][itern])
-
-        pofz = sourceargs['fitspofz'][1]['P(z)'][:]
-        pofz = pofz.reshape((pofz.shape[0], -1,))
-
-        hdulist = pyfits.open("DataStore/S16A_v2.0/%s_tracts/%s_pz.fits" % (tractreg, tractnum))
-        data = hdulist[1].data
-        pofzflag = (data["%s_photoz_risk_best" % (sourceargs['pofz_type']) ]<0.5)
-
-        sourceargs['iter'] = sourceargs['iter'] + 1
-        Ngal = np.shape(datagal)[0]
-        status = 0
-
-    return datagal, sourceargs, Ngal, status, pofz, datagalflag, pofzflag
-
-    # S15B v2.1 kept here for notes
-    if sourceargs['type'] == "hsc-wide" and sourceargs['filetype'] == "fits" and  sourceargs["fullpofz"]:
-        itern = sourceargs['iter']
-        if itern == 0:
-            sourceargs['fits_list'] = glob.glob("DataStore/S15B_v2.1/*_tracts/*_%s.fits" % (sourceargs['pofz_type']))
-            
-        if itern == len(sourceargs['fits_list']):
-            status = 1
-
-        datagal = 0
-        status = not (itern<len(sourceargs['fits_list']))
-        Ngal = 0
-        pofz = 0
-        if status:
-            return datagal, sourceargs, Ngal, status, pofz, 0., 0.
-
-        hdulist = pyfits.open(sourceargs['fits_list'][itern].split("_pz_pdf_%s" % (sourceargs['pofz_type']))[0] + ".fits")
-        data = hdulist[1].data
-        imag_cmodel = data["imag_cmodel"]
-        iflux_cmodel = data["iflux_cmodel"]
-        iflux_cmodel_err = data["iflux_cmodel_err"]
-        ishape_hsm_regauss_resolution = data["ishape_hsm_regauss_resolution"]
-        ishape_hsm_regauss_e1 = data["ishape_hsm_regauss_e1"]
-        ishape_hsm_regauss_e2 = data["ishape_hsm_regauss_e2"]
-        ishape_hsm_regauss_sigma = data["ishape_hsm_regauss_sigma"] 
-        ira = data["ira"]
-        idec = data["idec"]
-
-        datagalflag = (imag_cmodel < 25.0) & (iflux_cmodel/iflux_cmodel_err >=10) & (ishape_hsm_regauss_resolution> 1./3.) & (ishape_hsm_regauss_e1**2 + ishape_hsm_regauss_e2**2 < 4) & (ishape_hsm_regauss_sigma<0.4)
-        #datagalflag = (imag_cmodel < 24.5) & (iflux_cmodel/iflux_cmodel_err >=10) & (iflux_cmodel/iflux_cmodel_err <80) & (ishape_hsm_regauss_resolution> 0.3) & (ishape_hsm_regauss_e1**2 + ishape_hsm_regauss_e2**2 < 4) & (ishape_hsm_regauss_sigma<0.4)
-        #datagalflag = (imag_cmodel < 27.0)
-
-        datagal = np.array([ira, idec, ishape_hsm_regauss_e1, ishape_hsm_regauss_e2, ishape_hsm_regauss_sigma]).T
-
-        hdulist = pyfits.open(sourceargs['fits_list'][itern].split("_pdf_%s" % sourceargs['pofz_type'])[0] + ".fits")
-        data = hdulist[1].data
-        if sourceargs['pofz_type'] == "demp":
-            z_median = data["%s_photoz_median" % (sourceargs['pofz_type'])]
-            z_mode = data["%s_photoz_mode" % (sourceargs['pofz_type'])]
-            z_conf = data["%s_photoz_conf_median" % (sourceargs['pofz_type'])]
-            pofzflag = (np.absolute(z_mode - z_median)/(1+z_mode) < 0.8) & (z_conf > 0.09)
-        elif sourceargs['pofz_type'] == "mizuki":
-            red_chi2 = data["%s_reduced_chisq" % (sourceargs['pofz_type'])]
-            z_var = data["%s_photoz_variance" % (sourceargs['pofz_type'])]
-            pofzflag = (red_chi2<5) & (z_var<0.45)
-        elif sourceargs['pofz_type'] == "nnpz":
-            photoz_flag = data["%s_photoz_flag" % (sourceargs['pofz_type'])]
-            is_clean = data["%s_is_clean" % (sourceargs['pofz_type'])]
-            pofzflag = (is_clean==1) & (photoz_flag<=1)
-        elif sourceargs['pofz_type'] == "mlz":
-            stddev = data["%s_photoz_stddev_mean" % (sourceargs['pofz_type'])]
-            conf_mean = data["%s_photoz_conf_mean" % (sourceargs['pofz_type'])]
-            pofzflag = (stddev<3) & (conf_mean>0.13)
-        elif sourceargs['pofz_type'] == "frrfv0":
-            pofzflag = (datagalflag == True)
-
-        sourceargs['fitspofz'] = fitsio.FITS(sourceargs['fits_list'][itern])
-
-        pofz = sourceargs['fitspofz'][1]['P(z)'][:]
-        pofz = pofz.reshape((pofz.shape[0], -1,))
-
-        sourceargs['iter'] = sourceargs['iter'] + 1
-        Ngal = np.shape(datagal)[0]
-        status = 0
-
-    if sourceargs['type'] == "alexie-test" and sourceargs['filetype'] == "ascii" and  not sourceargs["fullpofz"]:
-
-        itern = sourceargs['iter']
-        if itern == 0:
-            sourceargs['dfchunks'] = pandas.read_csv("DataStore/alexie-test/GAMA15H_sources_test_original2.cat", names=(['ra','dec','z_b','jk','e1','e2','weight']), chunksize=chunksize, delim_whitespace=1)
-        try:
-            datagal = sourceargs['dfchunks'].next()
-        except:
-            status = 1
-            return 0.0, sourceargs, 0.0, status, 0, 0, 0
-
-        sourceargs['iter'] = sourceargs['iter'] + 1
-        Ngal = datagal.ra.size
-        status = 0
-
-        pofz = datagal.z_b.values
-        datagalflag = (datagal.ra.values==datagal.ra.values)
-        pofzflag = (datagal.ra.values==datagal.ra.values)
-
-    if sourceargs['type'] == "hsc-wide" and sourceargs['filetype'] == "fits" and  not sourceargs["fullpofz"]:
-
-        itern = sourceargs['iter']
-        if itern == 0:
-            sourceargs['fits_list'] = glob.glob("DataStore/S15B_v2.1/*_tracts/*_pz.fits")
-            #sourceargs['fits_list'] = glob.glob("/home/surhud/DataStore/S15B_v2.1/WIDE12H_tracts/*_pz.fits")
-            
-        if itern == len(sourceargs['fits_list']):
-            status = 1
-
-        datagal = 0
-        status = not (itern<len(sourceargs['fits_list']))
-        Ngal = 0
-        pofz = 0
-        if status:
-            return datagal, sourceargs, Ngal, status, pofz, 0, 0
-
-        # First apply the flags
-        hdulist = pyfits.open(sourceargs['fits_list'][itern].split("_pz")[0] + ".fits" )
-        data = hdulist[1].data
-        imag_cmodel = data["imag_cmodel"]
-        iflux_cmodel = data["iflux_cmodel"]
-        iflux_cmodel_err = data["iflux_cmodel_err"]
-        ishape_hsm_regauss_resolution = data["ishape_hsm_regauss_resolution"]
-        ishape_hsm_regauss_e1 = data["ishape_hsm_regauss_e1"]
-        ishape_hsm_regauss_e2 = data["ishape_hsm_regauss_e2"]
-        ishape_hsm_regauss_sigma = data["ishape_hsm_regauss_sigma"] 
-        ira = data["ira"]
-        idec = data["idec"]
-
-        datagalflag = (imag_cmodel < 25.0) & (iflux_cmodel/iflux_cmodel_err >=10) & (ishape_hsm_regauss_resolution> 0.3) & (ishape_hsm_regauss_e1**2 + ishape_hsm_regauss_e2**2 < 4) & (ishape_hsm_regauss_sigma<0.4)
-        datagal = np.array([ira, idec, ishape_hsm_regauss_e1, ishape_hsm_regauss_e2, ishape_hsm_regauss_sigma]).T
-
-        hdulist = pyfits.open(sourceargs['fits_list'][itern])
-        data = hdulist[1].data
-        z_median = data["%s_photoz_median" % (sourceargs['pofz_type'])]
-        if sourceargs['pofz_type'] == "demp":
-            z_mode = data["%s_photoz_mode" % (sourceargs['pofz_type'])]
-            z_conf = data["%s_photoz_conf_median" % (sourceargs['pofz_type'])]
-            pofzflag = (np.absolute(z_mode - z_median)/(1+z_mode) < 0.8) & (z_conf > 0.09)
-        elif sourceargs['pofz_type'] == "mizuki":
-            red_chi2 = data["%s_reduced_chisq" % (sourceargs['pofz_type'])]
-            z_var = data["%s_photoz_variance" % (sourceargs['pofz_type'])]
-            pofzflag = (red_chi2<5) & (z_var<0.45)
-        elif sourceargs['pofz_type'] == "nnpz":
-            photoz_flag = data["%s_photoz_flag" % (sourceargs['pofz_type'])]
-            is_clean = data["%s_is_clean" % (sourceargs['pofz_type'])]
-            pofzflag = (is_clean==1) & (photoz_flag<=1)
-        elif sourceargs['pofz_type'] == "mlz":
-            stddev = data["%s_photoz_stddev_mean" % (sourceargs['pofz_type'])]
-            conf_mean = data["%s_photoz_conf_mean" % (sourceargs['pofz_type'])]
-            pofzflag = (stddev<3) & (conf_mean>0.13)
-
-        pofz = data["%s_photoz_median" % (sourceargs['pofz_type']) ]
-
-        sourceargs['iter'] = sourceargs['iter'] + 1
-        Ngal = pofz.size
-        status = 0
-
-    if sourceargs['type'] == "hsc-wide-josh" and sourceargs['filetype'] == "fits":
-        # Glob up all the tracts
-        if sourceargs["fullpofz"]:
-            print "P(z) not implemented for Josh's catalog"
-            exit(11)
-        else:
-            pass
-
-        itern = sourceargs['iter']
-        if itern == 0:
-            sourceargs['fits'] = fitsio.FITS("DataStore/RF/hsc_s15b_wl_catalog_v0.fits")
-            #sourceargs['fits'] = fitsio.FITS("/home/surhud/DataStore/rf_wide12h_hsc_s15b_wl_catalog_v0.fits")
-            sourceargs['nrows'] = sourceargs['fits'][1].read_header()['naxis2']
-
-        datagal = 0
-        status = (itern*chunksize>=sourceargs['nrows'])
-        Ngal = 0
-        pofz = 0
-        if status:
-            return datagal, sourceargs, Ngal, status, pofz, 0, 0
-
-        wheremask = sourceargs['fits'][1].where("#row>%d && #row<=%d" % (itern*chunksize, (itern+1)*chunksize))
-        datagal = sourceargs['fits'][1]['ra','dec','e1','e2','weight'][wheremask]
-        if sourceargs["fullpofz"]:
-            print "Full p(z) not supported yet"
-        else:
-            pofz = sourceargs['fits'][1]['z_med'][wheremask]
-
-        sourceargs['iter'] = sourceargs['iter'] + 1
-        Ngal = np.shape(datagal)[0]
-        forflag = np.arange(Ngal)
-        datagalflag = (forflag==forflag)
-        pofzflag = (forflag==forflag)
-            
-    '''
-
 def get_pofz_array(sourceargs):
-    hdulist = pyfits.open("DataStore/S16A_v2.0/pz_pdf_bins_%s.fits" % sourceargs['pofz_type'])
-    data = hdulist[1].data
-    return data["bins"]
+    if sourceargs['type'] == "hsc-wide-s16a_v2.0":
+        hdulist = pyfits.open("DataStore/S16A_v2.0/pz_pdf_bins_%s.fits" % sourceargs['pofz_type'])
+        data = hdulist[1].data
+        return data["bins"]
+    if sourceargs['type'] == "hsc-wide-s19a_v2.0":
+        hdulist = pyfits.open("DataStore/S19A_v2.0/XMM_tracts/8279_pz_pdf_%s.fits" % sourceargs['pofz_type'])
+        data = hdulist[2].data
+        return data["bins"]
