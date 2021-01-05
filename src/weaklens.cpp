@@ -57,6 +57,7 @@ weaklens::weaklens()
     pz_alloc=false;
     gee = 4.2994e-9;
     cee = 3.E5;
+    sumwlssigcritinvPz_alloc=false;
 
     if (verbose){
         fprintf(stderr, "Initialized cosmology, and delta sigma sum arrays\n");
@@ -125,6 +126,7 @@ weaklens::weaklens(double xrmin, double xrmax, int xrbins, char *xoutfile, bool 
     pz_alloc=false;
     gee = 4.2994e-9;
     cee = 3.E5;
+    sumwlssigcritinvPz_alloc=false;
 
     if (verbose){
         fprintf(stderr, "Initialized cosmology, and delta sigma sum arrays\n");
@@ -205,6 +207,9 @@ weaklens::~weaklens(){
     if (random_rotate){
        gsl_rng_free (rng);
        random_rotate=false;
+    }
+    if (sumwlssigcritinvPz_alloc){
+        free(sumwlssigcritinvPz);
     }
 }
 
@@ -748,4 +753,40 @@ void weaklens::setup_version(int ver){
         R2min = 0.3;
         R2diff = 0.01;
     }
+}
+
+int weaklens::initialize_sumwlssigcritinvPz(int Npz){
+    if (!lenses_alloc || !pz_alloc){
+        fprintf(stderr, "Please call allocate_lens_memory and setup_pofz before calling initialize_sumwlssigcritinvPz. Aborting...");
+        exit(110);
+    }
+    sumwlssigcritinvPz = (double *) calloc(Ncen*Npz,sizeof(double));
+    
+    for(int i=0; i<Ncen*Npz; i++){
+        sumwlssigcritinvPz[i] = 0.;
+    }
+    sumwlssigcritinvPz_alloc = true;
+    return 0;
+}
+
+
+int weaklens::finalize_sumwlssigcritinvPz(int Npz, char *output_filename){
+    if(!sumwlssigcritinvPz_alloc){
+        fprintf(stderr, "Please call initialize_sumwlssigcritinvPz before calling finalize_sumwlssigcritinvPz. Aborting...");
+        exit(110);
+    }
+    FILE *fout=fopen(output_filename, "w");
+    for(int i=0; i<Ncen; i++){
+        char output_line[100000];
+        sprintf(output_line, "%d %.7e", i, zred[i]);
+        for(int j=0; j<Npz; j++){
+            char pz[256] = "";
+            sprintf(pz, " %.7e", sumwlssigcritinvPz[i*Npz+j]);
+            strcat(output_line, pz);
+        }
+        strcat(output_line, "\n");
+        fprintf(fout, "%s", output_line);
+    }
+    fclose(fout);
+    return 0;
 }

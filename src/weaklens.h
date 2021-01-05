@@ -41,7 +41,7 @@ class weaklens
         double *ra, *dec, *zred, *lam, *wt, *datacen, *c_lra, *s_lra, *c_ldec, *s_ldec, *Dcom;
         int Ncen, Nfill;
         double zredmin, zredmax, Dcommin;
-        double *sumdsig_num, *sumct_num, *sumdcross_num, *sumcx_num, *sumdcount_num, *sumwls, *sumwls_ms, *sumdsigsq_num, *sumdcrosssq_num, *sumwls_resp, *sumpairs, *sumwls_R2firstbin, *sumwls_R2allbins, *sumwls_aplastbin, *sumwls_apallbins, *sumdsig_psf_num, *sumdcross_psf_num;
+        double *sumdsig_num, *sumct_num, *sumdcross_num, *sumcx_num, *sumdcount_num, *sumwls, *sumwls_ms, *sumdsigsq_num, *sumdcrosssq_num, *sumwls_resp, *sumpairs, *sumwls_R2firstbin, *sumwls_R2allbins, *sumwls_aplastbin, *sumwls_apallbins, *sumdsig_psf_num, *sumdcross_psf_num, *sumwlssigcritinvPz;
         double sumwl;
         char outfile[10000];
         boost::timer *timer;
@@ -59,6 +59,8 @@ class weaklens
         double *pz_xz, *pz_chiz, *pz_fac, *pz_pofz, *current_src_pofz;
         double Nphotgal;
         bool pz_alloc;
+
+        bool sumwlssigcritinvPz_alloc;
 
         double gee;
         double cee;
@@ -89,6 +91,10 @@ class weaklens
         int test_searchrecord();
         int setup_random_rotate(int Nseed);
         void setup_version(int ver);
+
+        // Functions to help in cosmology conversion of the weak lensing measurement
+        int finalize_sumwlssigcritinvPz(int Npz, char *output_filename);
+        int initialize_sumwlssigcritinvPz(int Npz);
 };
 
 #endif
