@@ -70,6 +70,11 @@ def run_pipeline(config, verbose=0):
             pofz_zz = np.linspace(old_pofz_zz[0], old_pofz_zz[-1], new_size)
 
         wpipe.setup_pofz_array(pofz_zz)
+
+        if "outputsumwlssigcritinvPz" in config:
+            config["outputsumwlssigcritinvPz"] = config["outputdir"] + "/" + config["outputsumwlssigcritinvPz"]
+            wpipe.initialize_sumwlssigcritinvPz(pofz_zz.size)
+
         if verbose:
             print pofz_zz.size
             pofz_zz_arr = wpipe.doubleArray(pofz_zz.size)
@@ -167,6 +172,11 @@ def run_pipeline(config, verbose=0):
                 wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, R2gal, sourceargs["fullpofz"], -99.0, sourceargs["zdiff"], 0.0, 99.0, apgal, ep1, ep2)
             else:
                 wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, R2gal, sourceargs["fullpofz"], apgal, ep1, ep2)
+
+        if sourceargs["fullpofz"]:
+            if "outputsumwlssigcritinvPz" in config:
+                wpipe.finalize_sumwlssigcritinvPz(pofz_zz.size, config["outputsumwlssigcritinvPz"])
+
         wpipe.finalize_results()
     
     wpipe.finalize_results(writeok=True)
