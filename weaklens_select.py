@@ -651,6 +651,55 @@ def lens_select(lensargs):
             exit(11)
         return ra, dec, zred, wt
 
+    if lensargs['type'] == "bossdr11-hsc-cosmology":
+        if lensargs["sample"] == "LOWZ":
+            df = pandas.read_csv("DataStore/BOSS_DR11/LOWZ_K+E_v0.99.dat", delim_whitespace=1)
+        elif lensargs["sample"] == "CMASS":
+            df = pandas.read_csv("DataStore/BOSS_DR11/CMASS_K+E_v0.99.dat", delim_whitespace=1)
+        ra = df.ra.values
+        dec = df.dec.values
+        zred = df.z.values
+        wt = (df.weight_noz.values + df.weight_cp.values - 1.0)* df.weight_star.values
+        if 'mag_type' in lensargs:
+            if lensargs['mag_type'] == 'Wake':
+                iMag = df.Mag_Wake.values
+            elif lensargs['mag_type'] == 'Blanton':
+                iMag = df.Mag_Blanton.values
+        else:
+            iMag = df.Mag_Wake.values
+        idx = (iMag>lensargs["iMagmin"]) & (iMag<=lensargs["iMagmax"]) & (zred>lensargs["zmin"]) & (zred<=lensargs["zmax"])
+
+        # Selection on spatial distribution. Take galaxies approx delta = 13.5 deg from the edge of each field, which corresponds to ~100 Mpc/h at z=0.15 (the lowest redshift in our samples).
+        delta = 13.5
+        # HECTOMAP
+        idx_s = (236.-delta/np.cos(dec/180.) < ra) & (ra < 249.+delta/np.cos(dec/180.)) & (42.-delta < dec) & (dec < 44.5+delta)
+        # GAMA09H
+        idx_s |= (128.-delta/np.cos(dec/180.) < ra) & (ra < 142.+delta/np.cos(dec/180.)) & (-2.-delta < dec) & (dec < 5.+delta)
+        # WIDE12H
+        idx_s |= (175.5-delta/np.cos(dec/180.) < ra) & (ra < 183.+delta/np.cos(dec/180.)) & (-1.5-delta < dec) & (dec < 1.5+delta)
+        # GAMA15H
+        idx_s |= (210.-delta/np.cos(dec/180.) < ra) & (ra < 226.+delta/np.cos(dec/180.)) & (-1.5-delta < dec) & (dec < 1.5+delta)
+        # VVDS
+        idx_s |= (330.-delta/np.cos(dec/180.) < ra) & (ra < 342.+delta/np.cos(dec/180.)) & (-1.5-delta < dec) & (dec < 2.+delta)
+        # XMM
+        idx_s |= (29.-delta/np.cos(dec/180.) < ra) & (ra < 40.+delta/np.cos(dec/180.)) & (-6.5-delta < dec) & (dec < -1.8+delta)
+
+        idx &= idx_s
+
+        ra = ra[idx]
+        dec = dec[idx]
+        zred = zred[idx]
+        wt = wt[idx]
+#        print "sum wt:", np.sum(wt), len(ra)
+        iMag = iMag[idx]
+
+        sys.stdout.write("Selecting %d samples \n" % (ra.size))
+        #jackreg = getregions(ra, dec, lensargs["jackregfile"])
+        #np.savetxt("selected_lens_%s.dat" % (lensargs["sample"]), np.array([ra, dec, zred, wt]).transpose())
+        return ra, dec, zred, wt #, jackreg
+
+    raise RuntimeError("lens type %s is not defined in lens_select()" % lensargs['type'])
+
 
 def source_select(sourceargs, chunksize):
     """
