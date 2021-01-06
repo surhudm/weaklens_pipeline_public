@@ -191,3 +191,5 @@ requirements.txt. They can be installed to a local directory with:
 ```
 pip install --user -r requirements.txt
 ```
+
+4) Sometimes the `.py` files are not moved to the `install` directory. In this case simply run the setup.py install command twice to see if resoves the issue.
