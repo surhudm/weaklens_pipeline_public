@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import sys
 sys.path.append("install/lib/python2.7/site-packages/")
 sys.path.append("install/lib64/python2.7/site-packages/")
