@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import sys
 sys.path.append("install/lib/python2.7/site-packages/")
 sys.path.append("install/lib64/python2.7/site-packages/")
@@ -69,6 +70,11 @@ def run_pipeline(config, verbose=0):
             pofz_zz = np.linspace(old_pofz_zz[0], old_pofz_zz[-1], new_size)
 
         wpipe.setup_pofz_array(pofz_zz)
+
+        if "outputsumwlssigcritinvPz" in config:
+            config["outputsumwlssigcritinvPz"] = config["outputdir"] + "/" + config["outputsumwlssigcritinvPz"]
+            wpipe.initialize_sumwlssigcritinvPz(pofz_zz.size)
+
         if verbose:
             print pofz_zz.size
             pofz_zz_arr = wpipe.doubleArray(pofz_zz.size)
@@ -81,6 +87,12 @@ def run_pipeline(config, verbose=0):
     # Do we want to randomly rotate sources for shape noise estimates
     if "random_rotate_seed" in config:
         wpipe.setup_random_rotate(config["random_rotate_seed"])
+
+
+    if sourceargs["type"] == "hsc-wide-s19a_v2.0":
+        wpipe.setup_version(2)
+    elif sourceargs["type"] == "hsc-wide-s16a_v2.0":
+        wpipe.setup_version(1)
     
     while not done:
         itern = itern + 1
@@ -89,8 +101,8 @@ def run_pipeline(config, verbose=0):
         if status!=0 :
             break
         else:
-            print "\n", datagalflag.size, pofzflag.size
-    
+            print "Read \n", Ngal
+
         
         # Uncomment the following two rows for debugging purposes: 
         # if itern==2:
@@ -113,18 +125,29 @@ def run_pipeline(config, verbose=0):
                     if sourceargs['format'] == "des":
                         ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb = datagal[i]
                     elif sourceargs["format"] == "hsc":
-                        ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, R2gal = datagal[i]
+                        # version s16a_v2.0
+                        try:
+                            ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, R2gal = datagal[i]
+                            ep1 = ragal*0.0
+                            ep2 = ragal*0.0
+                            apgal = ragal/ragal*25.0
+                        # version s19a_v2.0
+                        except:
+                            ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, R2gal, apgal, ep1, ep2= datagal[i]
                         c1_nb = 0.0
                         c2_nb = 0.0
                     zphotgal = 0.0
+                    ep1 = np.double(ep1)
+                    ep2 = -np.double(ep2)
+
                     e1gal = np.double(e1gal)
                     e2gal = -np.double(e2gal)
                     c2_dp = -c2_dp
                     c2_nb = -c2_nb
                 
             elif sourceargs['filetype'] == "ascii":
-                ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, R2gal = datagal.ra.values[i], datagal.dec.values[i], datagal.e1.values[i],datagal.e2.values[i],datagal.weight.values[i],datagal.m.values[i],datagal.c1_dp.values[i],datagal.c2_dp.values[i],datagal.c1_nb.values[i],datagal.c2_nb.values[i],datagal.z_b.values[i], datagal.R2gal.values[i]
-    
+                print ("ascii files no longer supported") 
+
             if sourceargs["fullpofz"]:
                 if np.isnan(pofz[i][0]):
                     continue
@@ -144,11 +167,16 @@ def run_pipeline(config, verbose=0):
                 zphotgal = np.float64(pofz[i])
     
             if "integral_cut_zl" in sourceargs:
-                wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, R2gal, sourceargs["fullpofz"], sourceargs["integral_cut_zl"], sourceargs["integral_cut_zdiff"], sourceargs["integral_cut_Pth"], sourceargs["integral_cut_zmax"])
+                wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, R2gal, sourceargs["fullpofz"], sourceargs["integral_cut_zl"], sourceargs["integral_cut_zdiff"], sourceargs["integral_cut_Pth"], sourceargs["integral_cut_zmax"], apgal, ep1, ep2)
             elif "zdiff" in sourceargs and not sourceargs["fullpofz"]:
-                wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, R2gal, sourceargs["fullpofz"], -99.0, sourceargs["zdiff"], 0.0, 99.0)
+                wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, R2gal, sourceargs["fullpofz"], -99.0, sourceargs["zdiff"], 0.0, 99.0, apgal, ep1, ep2)
             else:
-                wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, R2gal, sourceargs["fullpofz"])
+                wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, R2gal, sourceargs["fullpofz"], apgal, ep1, ep2)
+
+        if sourceargs["fullpofz"]:
+            if "outputsumwlssigcritinvPz" in config:
+                wpipe.finalize_sumwlssigcritinvPz(pofz_zz.size, config["outputsumwlssigcritinvPz"])
+
         wpipe.finalize_results()
     
     wpipe.finalize_results(writeok=True)

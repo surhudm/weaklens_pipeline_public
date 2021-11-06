@@ -21,7 +21,11 @@ misses.
 
 # Data directory organization
 
-## For the calibrated/unblinded catalogs
+## For the S19A shape catalog
+
+Please follow instructions in the script `link_s19a_v2.0_catalog.py` to link the S19A catalogs
+
+## For the S16A calibrated/unblinded catalogs (only for S16A)
 
 ```
 mkdir -p DataStore/Calibrated_S16A_v2.0/
@@ -32,7 +36,7 @@ cd DataStore/Calibrated_S16A_v2.0/
 ```
 The filenames in this directory will be of the type: `fieldname_calibrated.fits`
 
-## For the blinded catalogs
+## For the blinded catalogs (only for S16A)
 
 ```
 mkdir -p DataStore/Blinded_S16A_v2.0/
@@ -43,7 +47,7 @@ cd DataStore/Blinded_S16A_v2.0/
 ```
 The filenames in this directory will be of the type: `fieldname_no_m.fits` and `fieldname_blinded_m_username_[012].fits`
 
-## The source P(z) and PDF
+## The source P(z) and PDF (only for S16A)
 
 For convenience Hironao has made the photozs and the photoz pdfs for sources available. Download them from http://master.ipmu.jp/~miyatake/shape_catalog/S16A_v2.0
 
@@ -56,7 +60,7 @@ Dump them as they are in the directory `DataStore/S16A_v2.0`
 # Matter density
 Omegam: 0.31
 # Output directory
-outputdir: camira/mizuki/zbest_0.70_1.20_10.0_1000.0
+outputdir: camira/dnnz/zbest_0.70_1.20_10.0_1000.0
 # Radial bins
 rbin: 20
 rmax: 20.0
@@ -78,14 +82,14 @@ source:
   username: more
   blinded: 1
   blindnumber: 0
-  dm: 0.04353
+  dm: `Input based on decryption`
   # Source file related
-  type: hsc-wide-s16a_v2.0
+  type: hsc-wide-s19a_v2.0
   filetype: fits
   format: hsc
   include_corrections: true
   # Photo z related
-  pofz_type: mizuki
+  pofz_type: dnnz
   fullpofz: false
   photoz_risk_best_cut: 0.5
   photoz_estimate: _best
@@ -93,14 +97,16 @@ source:
 ```
 `photoz_estimate` can be `_best` or `_mc` or `_median` or `_mean` that are
 supported by the `P(z)` files provided by HSC. If no such option is provided
-then the default would be `_best`.
+then the default would be `_best`. For `S19A_v2.0` catalogs only dnnz catalogs
+are available at the moment. `S16A_v2.0` can continue to use any of `demp`,
+`nnpz`, `mizuki`, `frankenz`, `mlz`, `ephor_ab`, or `ephor`.
 
 ## For using the full P(z)
 ```
 # Matter density
 Omegam: 0.31
 # Output directory
-outputdir: camira/mizuki/zbest_0.70_1.20_10.0_1000.0
+outputdir: camira/dnnz/zbest_0.70_1.20_10.0_1000.0
 # Radial bins
 rbin: 20
 rmax: 20.0
@@ -122,9 +128,9 @@ source:
   username: more
   blinded: 1
   blindnumber: 0
-  dm: 0.04353
+  dm: `Input based on decryption`
   # Source file related
-  type: hsc-wide-s16a_v2.0
+  type: hsc-wide-s19a_v2.0
   filetype: fits
   format: hsc
   include_corrections: true
@@ -172,11 +178,10 @@ Please install `gsl>=v1.14` and then retry. In case you have multiple versions o
 CPPFLAGS=-I/path/to/gsl/include python setup.py install
 ```
 
-2) You do not have the mapping from Rachel to Hironao's catalogs. These can be downloaded now from:
+2) You do not have the mapping from calibrated to the tractwise catalogs. These can be generated using the `generate_mapping.py` script
 
 ```
-http://master.ipmu.jp/~miyatake/shape_catalog/S16A_v2.0/Mapping_from_Rachel_catalogs_to_Hironao_catalogs.dat
-http://master.ipmu.jp/~miyatake/shape_catalog/S16A_v2.0/Mapping_from_Rachel_catalogs_to_Hironao_catalogs.dat.calibrated
+python generate_mapping.py S19A_v2.0
 ```
 
 3) See the .circleci files for the configuration which works in order to
@@ -186,3 +191,5 @@ requirements.txt. They can be installed to a local directory with:
 ```
 pip install --user -r requirements.txt
 ```
+
+4) Sometimes the `.py` files are not moved to the `install` directory. In this case simply run the setup.py install command twice to see if resoves the issue.

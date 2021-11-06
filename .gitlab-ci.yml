@@ -1,0 +1,6 @@
+test:
+  script:
+  - apt-get update -y -qq 
+  - apt-get install -y python-dev python-pip libgsl0ldbl libgsl0-dbg libgsl0-dev python python-scipy python-numpy libboost-all-dev libboost-dbg libboost-dev swig
+  - pip install -r requirements.txt
+  - python setup.py install
