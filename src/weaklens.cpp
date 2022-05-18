@@ -482,6 +482,12 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
         sumwls_resp[rpbin] += (wls*(1-srms_e*srms_e));
         sumpairs[rpbin] += 1.0;
 
+        if (sumwlssigcritinvPz_alloc){
+            for(int l=0;l < Npz; l++){
+                sumwlssigcritinvPz[xx*Npz+l] += wls_by_av_sigc_inv*current_src_pofz[l];
+            }
+        }
+
         if (src_in_R2firstbin) sumwls_R2firstbin[rpbin] += wls;
         sumwls_R2allbins[rpbin] += wls;
         if (src_in_aplastbin) sumwls_aplastbin[rpbin] += wls;
