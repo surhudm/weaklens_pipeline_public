@@ -397,7 +397,11 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
     qv[0]=sx;
     qv[1]=sy;
     qv[2]=sz;
-    double dis2 = pow(rmax/Dcommin, 2.);
+    // Euclidean distance
+    // double dis2 = pow(rmax/Dcommin, 2.);
+
+    // Great circle distance
+    double dis2 = pow(2*sin(rmax/Dcommin/2), 2.);
     tree->r_nearest(qv, dis2, res);
     //0 0.034433 0.260000 435.623138 0.150020
     if (verbose)
@@ -406,9 +410,16 @@ int weaklens::process_source(double sra, double sdec, double se1, double se2, do
 
     for(unsigned int k=0;k<res.size();k++){
         int xx = res.at(k).idx;
-        double dis2=sqrt(res.at(k).dis);
-        double logrp = log10(dis2*Dcom[xx]);
+        // Euclidean distance
+        // double dis2=sqrt(res.at(k).dis);
+        // double logrp = log10(dis2*Dcom[xx]);
 
+        // Great circle distance
+        // chord length on unit sphere (consistent with KD-tree metric)
+        double dis2 = sqrt(res.at(k).dis);
+        double theta = 2.0 * asin(dis2 / 2.0);
+        double logrp = log10(theta * Dcom[xx]);
+        
         if ((!usepdf) && szbest<=zred[xx]+integral_cut_zdiff) continue;
 
         if(integral_cut_zl==-49.0){
