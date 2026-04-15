@@ -93,7 +93,8 @@ def run_pipeline(config, verbose=0):
         wpipe.setup_version(2)
     elif sourceargs["type"] == "hsc-wide-s16a_v2.0":
         wpipe.setup_version(1)
-    
+    elif (sourceargs["type"] == "Euclid_Q1") or (sourceargs["type"] == "Euclid_RR2") or (sourceargs["type"] == "Euclid_Flagship_LightCone"):
+        wpipe.setup_version(3)
     while not done:
         itern = itern + 1
         datagal, sourceargs, Ngal, status, pofz, datagalflag, pofzflag = source_select(sourceargs, chunksize=1000000)
