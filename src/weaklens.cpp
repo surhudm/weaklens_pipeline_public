@@ -549,8 +549,15 @@ int weaklens::finalize_results(bool writeok){
         }
         double mselnbias = 0.0;
         double aselnbias = 0.0;
-        mselnbias = R2selnbias_A*sumwls_R2firstbin[i]/sumwls_R2allbins[i]/R2diff + apselnbias_A*sumwls_aplastbin[i]/sumwls_apallbins[i]/apdiff; 
-        aselnbias = R2selnbias_A_add*sumwls_R2firstbin[i]/sumwls_R2allbins[i]/R2diff + apselnbias_A_add*sumwls_aplastbin[i]/sumwls_apallbins[i]/apdiff; 
+
+        if (version!=3){
+            mselnbias = R2selnbias_A*sumwls_R2firstbin[i]/sumwls_R2allbins[i]/R2diff + apselnbias_A*sumwls_aplastbin[i]/sumwls_apallbins[i]/apdiff; 
+            aselnbias = R2selnbias_A_add*sumwls_R2firstbin[i]/sumwls_R2allbins[i]/R2diff + apselnbias_A_add*sumwls_aplastbin[i]/sumwls_apallbins[i]/apdiff; 
+        }
+      
+        if (version==3){
+            Resp = 0.5;
+        }
 
         /// These outputs should be pruned for clarity
         fprintf(fout, "%e %le %le %le %le %le %le %e %le %le %le %le %le %le %le  %le %le\n", rr, sumdsig_num[i], sumwls[i], sumwls_ms[i], sumwls_resp[i], (sumdsig_num[i]/sumwls_ms[i]/2./Resp-sumct_num[i]/sumwls_ms[i] - aselnbias*sumdsig_psf_num[i]/sumwls[i])/(1.0+mselnbias), sumwls[i]/sumwl, rrmin/2+rrmax/2, sumdcross_num[i]/sumwls_ms[i]/2./Resp-sumcx_num[i]/sumwls_ms[i]-aselnbias*sumdcross_psf_num[i]/sumwls[i], sumdcount_num[i]/sumwl, sumdcount_num[i], sqrt(sumdsigsq_num[i])/sumwls_ms[i]/2./Resp, sqrt(sumdcrosssq_num[i])/sumwls_ms[i]/2./Resp, sumpairs[i], mselnbias, sumct_num[i], aselnbias*sumdsig_psf_num[i]/sumwls[i]);
@@ -769,6 +776,11 @@ void weaklens::setup_version(int ver){
         apdiff = 0.025;
         R2min = 0.3;
         R2diff = 0.01;
+    }else if (version==3){
+        apmax = 25.5;
+        apdiff = 0.0;
+        R2min = -1.0;
+        R2diff = 0.0;
     }
 }
 

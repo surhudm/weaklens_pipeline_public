@@ -1097,6 +1097,19 @@ def source_select(sourceargs, chunksize):
 
         return datagal, sourceargs, Ngal, status, pofz, datagalflag, pofzflag
 
+    if sourceargs['type'] == "Euclid_Q1":
+        print("Euclid_Q1 not implemented yet")
+        exit(11)
+
+    if sourceargs['type'] == "Euclid_RR2":
+        print("Euclid_RR2 not implemented yet")
+        exit(11)
+        
+    if sourceargs['type'] == "Euclid_Flagship_LightCone":
+        print("Euclid_Flagship_LightCone not implemented yet")
+        exit(11)
+
+
 def get_pofz_array(sourceargs):
     if sourceargs['type'] == "hsc-wide-s16a_v2.0":
         hdulist = pyfits.open("DataStore/S16A_v2.0/pz_pdf_bins_%s.fits" % sourceargs['pofz_type'])
