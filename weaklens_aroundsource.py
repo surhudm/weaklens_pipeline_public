@@ -145,7 +145,21 @@ def run_pipeline(config, verbose=0):
                     e2gal = -np.double(e2gal)
                     c2_dp = -c2_dp
                     c2_nb = -c2_nb
-                
+                else:
+                    ragal, decgal, e1gal, e2gal, wgal, rms_egal = datagal[i]
+                    e1gal = np.double(e1gal)
+                    e2gal = -np.double(e2gal)
+                    mgal = 0.0
+                    c1_dp = 0.0
+                    c2_dp = 0.0
+                    c1_nb = 0.0
+                    c2_nb = 0.0
+                    apgal = 0.0
+                    ep1 = 0.0
+                    ep2 = 0.0
+                    R2gal = 0.0
+                    zphotgal = 0.0
+
             elif sourceargs['filetype'] == "ascii":
                 print ("ascii files no longer supported") 
 
@@ -172,7 +186,7 @@ def run_pipeline(config, verbose=0):
             elif "zdiff" in sourceargs and not sourceargs["fullpofz"]:
                 wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, R2gal, sourceargs["fullpofz"], -99.0, sourceargs["zdiff"], 0.0, 99.0, apgal, ep1, ep2)
             else:
-                wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, R2gal, sourceargs["fullpofz"], apgal, ep1, ep2)
+                wpipe.process_source(ragal, decgal, e1gal, e2gal, wgal, rms_egal, mgal, c1_dp, c2_dp, c1_nb, c2_nb, zphotgal, R2gal, sourceargs["fullpofz"], -99.0, 0.0, 0.0, 99.0, apgal, ep1, ep2)
 
         if sourceargs["fullpofz"]:
             if "outputsumwlssigcritinvPz" in config:

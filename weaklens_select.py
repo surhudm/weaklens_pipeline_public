@@ -6,6 +6,7 @@ import fitsio
 import glob
 from sqlitedict import SqliteDict
 import gnupg
+import os
 
 gpg = gnupg.GPG()
 
@@ -698,6 +699,62 @@ def lens_select(lensargs):
         #np.savetxt("selected_lens_%s.dat" % (lensargs["sample"]), np.array([ra, dec, zred, wt]).transpose())
         return ra, dec, zred, wt #, jackreg
 
+    if lensargs['type'] == "Euclid_Flagship_LightCone":
+        # Euclid Flagship mock: lens_bin_<N>.fits in lensargs['dir']
+        # Columns: ra_gal, dec_gal, true_redshift_gal
+        if 'dir' not in lensargs:
+            raise RuntimeError("lens.dir is required for Euclid_Flagship_LightCone")
+        lens_bin_ids = lensargs.get('lens_bin_id', [1, 2, 3, 4, 5])
+        if isinstance(lens_bin_ids, int):
+            lens_bin_ids = [lens_bin_ids]
+
+        ra_list, dec_list, zred_list = [], [], []
+        for bin_id in lens_bin_ids:
+            filename = os.path.join(lensargs['dir'], 'lens_bin_%d.fits' % bin_id)
+            d = pyfits.getdata(filename)
+            ra_list.append(d['ra_gal'].astype('float64'))
+            dec_list.append(d['dec_gal'].astype('float64'))
+            zred_list.append(d['true_redshift_gal'].astype('float64'))
+
+        ra = np.concatenate(ra_list)
+        dec = np.concatenate(dec_list)
+        zred = np.concatenate(zred_list)
+
+        # Optional redshift cuts (bins may already be pre-filtered)
+        if 'zmin' in lensargs:
+            sel = zred >= lensargs['zmin']
+            ra, dec, zred = ra[sel], dec[sel], zred[sel]
+        if 'zmax' in lensargs:
+            sel = zred < lensargs['zmax']
+            ra, dec, zred = ra[sel], dec[sel], zred[sel]
+
+        wt = np.ones(len(ra), dtype=float)
+        sys.stdout.write("Number of lenses (Euclid Flagship LightCone): %s\n" % (ra.size))
+        return ra, dec, zred, wt
+
+    if lensargs['type'] == "Euclid_Flagship_LightCone_random":
+        # Random points for Euclid_Flagship_LightCone: a single FITS file
+        # (lensargs['dir'] is the file path) with the same column names as the
+        # lens catalog. The randoms should cover the survey footprint and follow
+        # the lens n(z); select the matching lens bin with zmin/zmax.
+        if 'dir' not in lensargs:
+            raise RuntimeError("lens.dir is required for Euclid_Flagship_LightCone_random")
+        d = pyfits.getdata(lensargs['dir'])
+        ra = d['ra_gal'].astype('float64')
+        dec = d['dec_gal'].astype('float64')
+        zred = d['true_redshift_gal'].astype('float64')
+
+        if 'zmin' in lensargs:
+            sel = zred >= lensargs['zmin']
+            ra, dec, zred = ra[sel], dec[sel], zred[sel]
+        if 'zmax' in lensargs:
+            sel = zred < lensargs['zmax']
+            ra, dec, zred = ra[sel], dec[sel], zred[sel]
+
+        wt = np.ones(len(ra), dtype=float)
+        sys.stdout.write("Number of random lenses (Euclid Flagship LightCone): %s\n" % (ra.size))
+        return ra, dec, zred, wt
+
     raise RuntimeError("lens type %s is not defined in lens_select()" % lensargs['type'])
 
 
@@ -1106,8 +1163,49 @@ def source_select(sourceargs, chunksize):
         exit(11)
         
     if sourceargs['type'] == "Euclid_Flagship_LightCone":
-        print("Euclid_Flagship_LightCone not implemented yet")
-        exit(11)
+        # Euclid Flagship mock: source_bin_<N>.fits in sourceargs['dir']
+        # Columns: ra_gal, dec_gal, true_redshift_gal, eps1_gal, eps2_gal, gamma1, gamma2
+        # Observed ellipticity (weak-lensing linear approx.): e = eps_intrinsic + gamma
+        # Reads in chunks of chunksize rows; use with include_corrections: False
+        # and fullpofz: False (true_redshift_gal is used as the source redshift).
+        if 'dir' not in sourceargs:
+            raise RuntimeError("source.dir is required for Euclid_Flagship_LightCone")
+        source_bin_id = sourceargs.get('source_bin_id', 6)
+        filename = os.path.join(sourceargs['dir'], 'source_bin_%d.fits' % source_bin_id)
+
+        # Initialize row offset on first call
+        if 'source_row_start' not in sourceargs:
+            with fitsio.FITS(filename) as f:
+                sourceargs['source_nrows'] = f[1].get_nrows()
+            sourceargs['source_row_start'] = 0
+
+        row_start = sourceargs['source_row_start']
+        nrows_total = sourceargs['source_nrows']
+        if row_start >= nrows_total:
+            status = 1
+            return 0, sourceargs, 0, status, 0, 0, 0
+
+        row_end = min(row_start + chunksize, nrows_total)
+        d = fitsio.read(filename, ext=1, rows=range(row_start, row_end))
+
+        e1 = d['eps1_gal'].astype('float64') + d['gamma1'].astype('float64')
+        e2 = d['eps2_gal'].astype('float64') + d['gamma2'].astype('float64')
+        rms_e = 0.25 * np.ones(len(d['ra_gal']))
+        wgal = np.ones(len(d['ra_gal']))  # No weight column in Flagship
+
+        # weaklens_aroundsource flips the sign of e2, so store -e2 here
+        datagal = np.array([d['ra_gal'], d['dec_gal'], e1, -e2, wgal, rms_e]).T
+        datagalflag = np.ones(len(d['ra_gal']), dtype=bool)
+        pofz = d['true_redshift_gal'].astype('float64')
+        pofzflag = np.ones(len(d['ra_gal']), dtype=bool)
+
+        Ngal = len(d['ra_gal'])
+        status = 0
+        sourceargs['source_row_start'] = row_end
+        sourceargs['iter'] = sourceargs['iter'] + 1
+        sys.stdout.write("Number of sources (Euclid Flagship LightCone bin %d): rows %d-%d of %d\n" % (source_bin_id, row_start, row_end, nrows_total))
+
+        return datagal, sourceargs, Ngal, status, pofz, datagalflag, pofzflag
 
 
 def get_pofz_array(sourceargs):
