@@ -25,8 +25,8 @@ def decrypt_string(encrypted_string):
     #string = getpass.getpass(prompt="Enter passphrase to unlock the private key:\n")
     decrypted_data = gpg.decrypt(encrypted_string) #, passphrase=string)
 
-    print 'ok: ', decrypted_data.ok
-    print 'status: ', decrypted_data.status
+    print('ok: ', decrypted_data.ok)
+    print('status: ', decrypted_data.status)
     #print 'stderr: ', decrypted_data.stderr
     #print 'Decrypted string (additive m value for the catalog): ', decrypted_data.data
     return decrypted_data.data
@@ -147,7 +147,7 @@ def lens_select(lensargs):
         selarr = np.zeros(zarr.size-1)
         for i in range(1, zarr.size):
             selarr[i-1] = np.sum(idx & (zred>zarr[i-1]) & (zred<=zarr[i]))*1.0/np.sum(idxall & (zred>zarr[i-1]) & (zred<=zarr[i]))
-            print i, selarr[i-1], "\n================="
+            print(i, selarr[i-1], "\n=================")
         zarr = zarr[:-1]/2. + zarr[1:]/2.
 
         from scipy.interpolate import UnivariateSpline
@@ -192,7 +192,7 @@ def lens_select(lensargs):
             selarr = np.zeros(zarr.size-1)
             for i in range(1, zarr.size):
                 selarr[i-1] = np.sum(idx & (zred>zarr[i-1]) & (zred<=zarr[i]))*1.0/np.sum(idxall & (zred>zarr[i-1]) & (zred<=zarr[i]))
-                print i, selarr[i-1], "\n================="
+                print(i, selarr[i-1], "\n=================")
             zarr = zarr[:-1]/2. + zarr[1:]/2.
             dfsel = pandas.DataFrame(zarr, columns=(["zred"]))
             dfsel["sel"] = selarr
@@ -223,7 +223,7 @@ def lens_select(lensargs):
             selarr = np.zeros(zarr.size-1)
             for i in range(1, zarr.size):
                 selarr[i-1] = np.sum(idx & (zred>zarr[i-1]) & (zred<=zarr[i]))*1.0/np.sum(idxall & (zred>zarr[i-1]) & (zred<=zarr[i]))
-                print i, selarr[i-1], "\n================="
+                print(i, selarr[i-1], "\n=================")
             zarr = zarr[:-1]/2. + zarr[1:]/2.
             dfsel = pandas.DataFrame(zarr, columns=(["zred"]))
             dfsel["sel"] = selarr
@@ -795,7 +795,7 @@ def source_select(sourceargs, chunksize):
             if "usefield" in sourceargs:
                 restidx = sourceargs["df"].field.values==sourceargs["usefield"]
                 sourceargs["df"] = sourceargs["df"][restidx]
-                print "Using only field", sourceargs["usefield"]
+                print("Using only field", sourceargs["usefield"])
 
         datagal = 0
         Ngal = 0
@@ -822,7 +822,7 @@ def source_select(sourceargs, chunksize):
                         msg = hdulist[0].header["DM1"]
                         sourceargs['dm'] = float(decrypt_string(FITS_to_PGP(msg)))
                     except:
-                        print "GPG decryption failed, check your gpg-agent"
+                        print("GPG decryption failed, check your gpg-agent")
                         exit(12)
                 # The commented line is memory intensive
                 #sourceargs["fits"] = fitsio.FITS("%s[1][col *, i_hsmshaperegauss_derived_shear_bias_m = i_hsmshaperegauss_derived_shear_bias_m - %f ]" % (fname, sourceargs['dm']))[1]
@@ -885,7 +885,7 @@ def source_select(sourceargs, chunksize):
             if "usefield" in sourceargs:
                 restidx = sourceargs["df"].field.values==sourceargs["usefield"]
                 sourceargs["df"] = sourceargs["df"][restidx]
-                print "Using only field", sourceargs["usefield"]
+                print("Using only field", sourceargs["usefield"])
 
         datagal = 0
         Ngal = 0
@@ -911,7 +911,7 @@ def source_select(sourceargs, chunksize):
                         msg = hdulist[0].header["DM1"]
                         sourceargs['dm'] = float(decrypt_string(FITS_to_PGP(msg)))
                     except:
-                        print "GPG decryption failed, check your gpg-agent"
+                        print("GPG decryption failed, check your gpg-agent")
                         exit(12)
                 # The commented line is memory intensive
                 #sourceargs["fits"] = fitsio.FITS("%s[1][col *, i_hsmshaperegauss_derived_shear_bias_m = i_hsmshaperegauss_derived_shear_bias_m - %f ]" % (fname, sourceargs['dm']))[1]
@@ -983,7 +983,7 @@ def source_select(sourceargs, chunksize):
             if "usefield" in sourceargs:
                 restidx = sourceargs["df"].field.values==sourceargs["usefield"]
                 sourceargs["df"] = sourceargs["df"][restidx]
-                print "Using only field", sourceargs["usefield"]
+                print("Using only field", sourceargs["usefield"])
 
         datagal = 0
         Ngal = 0
@@ -1010,7 +1010,7 @@ def source_select(sourceargs, chunksize):
                         msg = hdulist[0].header["DM1"]
                         sourceargs['dm'] = float(decrypt_string(FITS_to_PGP(msg)))
                     except:
-                        print "GPG decryption failed, check your gpg-agent"
+                        print("GPG decryption failed, check your gpg-agent")
                         exit(12)
                 # The commented line is memory intensive
                 #sourceargs["fits"] = fitsio.FITS("%s[1][col *, ishape_hsm_regauss_derived_shear_bias_m = ishape_hsm_regauss_derived_shear_bias_m - %f ]" % (fname, sourceargs['dm']))[1]
@@ -1070,7 +1070,7 @@ def source_select(sourceargs, chunksize):
             if "usefield" in sourceargs:
                 restidx = sourceargs["df"].field.values==sourceargs["usefield"]
                 sourceargs["df"] = sourceargs["df"][restidx]
-                print "Using only field", sourceargs["usefield"]
+                print("Using only field", sourceargs["usefield"])
 
         datagal = 0
         Ngal = 0
@@ -1097,7 +1097,7 @@ def source_select(sourceargs, chunksize):
                         msg = hdulist[0].header["DM1"]
                         sourceargs['dm'] = float(decrypt_string(FITS_to_PGP(msg)))
                     except:
-                        print "GPG decryption failed, check your gpg-agent"
+                        print("GPG decryption failed, check your gpg-agent")
                         exit(12)
                 # The commented line is memory intensive
                 #sourceargs["fits"] = fitsio.FITS("%s[1][col *, ishape_hsm_regauss_derived_shear_bias_m = ishape_hsm_regauss_derived_shear_bias_m - %f ]" % (fname, sourceargs['dm']))[1]

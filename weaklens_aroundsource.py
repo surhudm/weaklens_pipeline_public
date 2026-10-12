@@ -45,7 +45,7 @@ def run_pipeline(config, verbose=0):
     wpipe = weaklens.weaklens(rmin, rmax, rbin, pairout, False, config["Omegam"], config["outputpairfile"])
     
     # First get all the lens galaxy data
-    print config["lens"]
+    print(config["lens"])
     ra, dec, zred, wt = lens_select(config["lens"])
     
     wpipe.allocate_lens_memory(ra.size)
@@ -61,7 +61,7 @@ def run_pipeline(config, verbose=0):
     sourceargs["iter"] = 0
     
     if sourceargs["fullpofz"]:
-        print "Setting up P(z)"
+        print("Setting up P(z)")
         pofz_zz = get_pofz_array(sourceargs).astype("float32")
 
         if config["oversample_pofz"] > 1:
@@ -76,10 +76,10 @@ def run_pipeline(config, verbose=0):
             wpipe.initialize_sumwlssigcritinvPz(pofz_zz.size)
 
         if verbose:
-            print pofz_zz.size
+            print(pofz_zz.size)
             pofz_zz_arr = wpipe.doubleArray(pofz_zz.size)
             for i in range(pofz_zz.size):
-                print i, pofz_zz[i]
+                print(i, pofz_zz[i])
                 pofz_zz_arr[i] = pofz_zz[i]
     elif "photoz_estimate" not in sourceargs:
         sourceargs["photoz_estimate"] = "_best"
@@ -102,7 +102,7 @@ def run_pipeline(config, verbose=0):
         if status!=0 :
             break
         else:
-            print "Read \n", Ngal
+            print("Read \n", Ngal)
 
         
         # Uncomment the following two rows for debugging purposes: 
@@ -208,8 +208,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     with open(args.config, 'r') as ymlfile:
-        config = yaml.load(ymlfile)
-    print config
+        config = yaml.load(ymlfile, Loader=yaml.FullLoader)
+    print(config)
 
 
     if "rmax" not in config:
