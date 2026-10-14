@@ -28,7 +28,7 @@ setup (name        = 'wpipe',
        author_email= "surhud@iucaa.in",
        description = """Weak lensing pipeline tools""",
        ext_modules = [weaklens_module, tomography_module],
-       license     = ['GPL'],
+       license     = 'GPL',
        py_modules  = ["weaklens", "tomography"],
        package_dir = { '':'src'},
        )
